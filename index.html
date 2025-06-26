@@ -8,38 +8,44 @@
   <style>
     body {
       font-family: system-ui, sans-serif;
-      background: #f4f6f9;
+      background: #f9fafb;
       margin: 0;
       padding: 20px;
     }
     h1 {
       text-align: center;
-      font-size: 2rem;
+      font-size: 2.2rem;
+      margin-bottom: 10px;
     }
     .section {
       max-width: 900px;
-      margin: 30px auto;
+      margin: 20px auto;
       background: #fff;
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
     }
     .card {
-      border: 1px solid #ddd;
+      border: 1px solid #eee;
       border-radius: 8px;
       padding: 16px;
-      margin-bottom: 12px;
+      margin: 12px 0;
+      background: #fcfcfc;
     }
     .flag {
-      font-size: 1.5em;
-      margin-right: 4px;
+      font-size: 1.3em;
+      margin-right: 6px;
     }
     .cve-id {
       font-weight: bold;
       font-size: 1.1em;
     }
     a {
-      color: #0077cc;
+      color: #0066cc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -47,53 +53,53 @@
 
 <h1>🌎 South America CVE Hall</h1>
 
-<div class="section" id="readme">
+<div class="section">
   <h2>📘 Sobre o Projeto</h2>
-  <div id="readme-content">Carregando conteúdo do README.md...</div>
+  <div id="readme-content">...</div>
 </div>
 
 <div class="section">
   <h2>🧩 CVEs Registrados</h2>
-  <div id="cve-list">Carregando CVEs...</div>
+  <div id="cve-list">...</div>
 </div>
 
 <script>
-  // Converter código de país para emoji de bandeira
+  const readmeURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md';
+  const csvURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv';
+
+  // 🇧🇷 Converte BR → 🇧🇷
   function countryCodeToEmoji(code) {
-    if (!code) return '';
-    return code.toUpperCase().replace(/./g, c =>
-      String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))
-    );
+    return code?.toUpperCase().replace(/./g, c =>
+      String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+    ) || '';
   }
 
-  // Carregar README.md e renderizar com marked
-  fetch('https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md')
+  // Render README.md
+  fetch(readmeURL)
     .then(res => res.text())
     .then(md => {
       document.getElementById('readme-content').innerHTML = marked.parse(md);
     });
 
-  // Carregar hall.csv e exibir CVEs
-  fetch('https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv')
+  // Render CSV → cards
+  fetch(csvURL)
     .then(res => res.text())
     .then(csv => {
-      const parsed = Papa.parse(csv, { header: true }).data;
+      const data = Papa.parse(csv, { header: true }).data;
       const container = document.getElementById('cve-list');
       container.innerHTML = '';
-      parsed.forEach(row => {
-        if (!row.cve_id || !row.country) return;
-
-        const flag = row.country_code ? countryCodeToEmoji(row.country_code.trim()) : '';
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
+      for (const row of data) {
+        if (!row.cve_id || !row.country) continue;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
           <div class="cve-id">${row.cve_id}</div>
           <div>👤 ${row.researcher || 'Desconhecido'}</div>
-          <div>🌎 ${flag} ${row.country}</div>
+          <div>🌎 <span class="flag">${countryCodeToEmoji(row.country_code)}</span> ${row.country}</div>
           <div>🔗 <a href="${row.link}" target="_blank">Ver CVE</a></div>
         `;
-        container.appendChild(div);
-      });
+        container.appendChild(card);
+      }
     });
 </script>
 
