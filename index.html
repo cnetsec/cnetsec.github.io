@@ -2,84 +2,107 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</title>
+  <title>South America CVE Hall</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
       background-color: #f4f4f4;
-      margin: 0;
       padding: 2rem;
+      margin: 0;
       color: #222;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
-      background: white;
+      background: #fff;
       padding: 2rem;
-      border-radius: 10px;
+      border-radius: 8px;
       box-shadow: 0 0 12px rgba(0,0,0,0.05);
     }
     h1 {
       text-align: center;
       color: #003366;
     }
-    #conteudo {
-      white-space: pre-wrap;
-      line-height: 1.5;
-    }
-    .erro {
-      color: #a00;
-      text-align: center;
+    table {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 2rem;
     }
-    button {
-      display: block;
-      margin: 1rem auto;
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
       background-color: #003366;
       color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f4f4f4;
+    }
+    .error {
+      text-align: center;
+      color: red;
+      margin-top: 1.5rem;
+    }
+    .retry {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #004080;
+      color: white;
       border: none;
-      padding: 0.6rem 1.2rem;
-      font-size: 1rem;
       border-radius: 5px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #00509e;
+    .retry:hover {
+      background-color: #0055aa;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-    <div id="conteudo">Carregando...</div>
-    <div class="erro" id="erro" style="display:none;">
-      Erro ao carregar conteúdo.<br />
-      <button onclick="carregar()">Tentar novamente</button>
-    </div>
+    <div id="tabela"></div>
   </div>
 
   <script>
-    async function carregar() {
-      const conteudo = document.getElementById("conteudo");
-      const erro = document.getElementById("erro");
-
-      conteudo.textContent = "Carregando...";
-      erro.style.display = "none";
-
+    async function carregarTabela() {
+      const el = document.getElementById("tabela");
       try {
-        const resposta = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!resposta.ok) throw new Error("Erro ao buscar o conteúdo");
+        const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
+        const md = await res.text();
+        const hallMatch = md.match(/## 🏅 Hall de CVEs([\s\S]*?)(?=\n## |$)/);
+        if (!hallMatch) throw new Error("Seção não encontrada");
 
-        const texto = await resposta.text();
-        conteudo.textContent = texto;
+        const linhas = hallMatch[1]
+          .trim()
+          .split('\n')
+          .filter(l => l.includes('|') && !/^[-| ]+$/.test(l));
+
+        if (linhas.length < 2) throw new Error("Tabela incompleta");
+
+        const tabelaHTML = `
+          <table>
+            ${linhas.map((linha, i) => {
+              const cols = linha.split('|').slice(1, -1).map(c => c.trim());
+              const tag = i === 0 ? 'th' : 'td';
+              return '<tr>' + cols.map(col => `<${tag}>${col}</${tag}>`).join('') + '</tr>';
+            }).join('')}
+          </table>`;
+
+        el.innerHTML = tabelaHTML;
       } catch (e) {
-        conteudo.textContent = "";
-        erro.style.display = "block";
+        document.getElementById("tabela").innerHTML = `
+          <div class="error">
+            Erro ao carregar conteúdo.<br>
+            <button class="retry" onclick="carregarTabela()">Tentar novamente</button>
+          </div>`;
       }
     }
 
-    carregar();
+    carregarTabela();
   </script>
 </body>
 </html>
