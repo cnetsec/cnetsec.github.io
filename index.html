@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>South America CVE Hall</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f9f9f9;
-      color: #111;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
       margin: 0;
-    }
-    h1, h2 {
+      padding: 2rem;
+      background-color: #fdfdfd;
       color: #222;
-      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 2rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1.5rem;
-      font-size: 0.95rem;
+      margin-top: 1rem;
     }
     th, td {
       border: 1px solid #ddd;
@@ -31,39 +32,28 @@
       vertical-align: top;
     }
     th {
-      background-color: #eee;
+      background-color: #f3f3f3;
     }
     tr:nth-child(even) {
-      background-color: #f4f4f4;
+      background-color: #fafafa;
     }
-    .cve-link {
-      display: inline-block;
-      margin-right: 0.4rem;
-      word-break: break-word;
-    }
-    .country-flag {
-      font-size: 1.3rem;
-    }
-    #readme-content h2, #readme-content h1 {
-      display: none;
+    .loading {
+      font-style: italic;
+      color: #888;
     }
   </style>
 </head>
 <body>
   <h1>🌎 South America CVE Hall</h1>
-  <div id="readme-content">⌛ Carregando informações do projeto...</div>
+  <div id="readme" class="loading">Carregando descrição do projeto...</div>
+  <h2>🏅 Hall de CVEs</h2>
+  <div id="cve-table" class="loading">Carregando dados dos pesquisadores...</div>
 
-  <div id="cve-table">⌛ Carregando CVEs...</div>
-
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     const readmeURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md';
     const csvURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv';
-
-    const getFlagEmoji = (countryCode) => {
-      if (!countryCode) return '';
-      return countryCode.replace(/./g, char => 
-        String.fromCodePoint(127397 + char.toUpperCase().charCodeAt()));
-    };
 
     fetch(readmeURL)
       .then(res => res.text())
@@ -72,43 +62,44 @@
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        // Remove seção indesejada
-        temp.querySelectorAll('h1, h2, h3, p').forEach(el => {
+        temp.querySelectorAll('h1, h2, p').forEach(el => {
           const text = el.textContent.toLowerCase();
-          if (text.includes('cves registrados') || text.includes('nenhum cve encontrado')) {
+          if (text.includes('nenhum cve') || text.includes('cves registrados')) {
             el.remove();
           }
         });
 
-        document.getElementById('readme-content').innerHTML = temp.innerHTML;
+        document.getElementById('readme').innerHTML = temp.innerHTML;
       });
 
     fetch(csvURL)
       .then(res => res.text())
       .then(csv => {
-        const data = Papa.parse(csv, { header: true }).data;
-        if (!data || data.length === 0) {
-          document.getElementById('cve-table').innerHTML = "<p>Nenhum CVE encontrado.</p>";
-          return;
-        }
+        const parsed = Papa.parse(csv, { header: true }).data;
+        const valid = parsed.filter(row => row.Pesquisador && row.País);
+        if (!valid.length) return;
 
-        let html = "<h2>🏅 Hall de CVEs</h2><table><thead><tr><th>Pesquisador</th><th>CVEs</th><th>País</th></tr></thead><tbody>";
-        const seenResearchers = new Set();
-
-        data.forEach(row => {
-          if (!row.researcher || seenResearchers.has(row.researcher)) return;
-          seenResearchers.add(row.researcher);
-
-          const cves = row.cves?.split(/\s+/).filter(Boolean).map(cve => {
-            const clean = cve.replace(/[()]/g, '');
-            return `<a class='cve-link' href='https://cve.org/CVERecord?id=${clean}' target='_blank'>${clean}</a>`;
-          }).join(' ') || '';
-          const flag = getFlagEmoji(row.country_code);
-          html += `<tr><td><strong>${row.researcher}</strong></td><td>${cves}</td><td class='country-flag'>${flag}</td></tr>`;
+        const table = document.createElement('table');
+        const header = table.insertRow();
+        ['Pesquisador', 'CVE(s)', 'País'].forEach(col => {
+          const th = document.createElement('th');
+          th.textContent = col;
+          header.appendChild(th);
         });
 
-        html += "</tbody></table>";
-        document.getElementById('cve-table').innerHTML = html;
+        valid.forEach(row => {
+          const tr = table.insertRow();
+          ['Pesquisador', 'CVE(s)', 'País'].forEach(col => {
+            const td = document.createElement('td');
+            td.innerHTML = row[col] || '';
+            tr.appendChild(td);
+          });
+        });
+
+        const target = document.getElementById('cve-table');
+        target.classList.remove('loading');
+        target.innerHTML = '';
+        target.appendChild(table);
       });
   </script>
 </body>
