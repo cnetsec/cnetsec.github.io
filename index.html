@@ -16,11 +16,12 @@
     }
     h1, h2 {
       color: #222;
+      margin-bottom: 0.5rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
+      margin-top: 1.5rem;
       font-size: 0.95rem;
     }
     th, td {
@@ -43,12 +44,15 @@
     .country-flag {
       font-size: 1.3rem;
     }
+    #readme-content h2, #readme-content h1 {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>🌎 South America CVE Hall</h1>
   <div id="readme-content">⌛ Carregando informações do projeto...</div>
-  <h2>🏅 Hall de CVEs</h2>
+
   <div id="cve-table">⌛ Carregando CVEs...</div>
 
   <script>
@@ -68,13 +72,12 @@
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        const headers = temp.querySelectorAll('h1, h2, h3');
-        headers.forEach(h => {
-          if (h.textContent.toLowerCase().includes('cves registrados')) h.remove();
-        });
-        const paras = temp.querySelectorAll('p');
-        paras.forEach(p => {
-          if (p.textContent.toLowerCase().includes('nenhum cve')) p.remove();
+        // Remove seção indesejada
+        temp.querySelectorAll('h1, h2, h3, p').forEach(el => {
+          const text = el.textContent.toLowerCase();
+          if (text.includes('cves registrados') || text.includes('nenhum cve encontrado')) {
+            el.remove();
+          }
         });
 
         document.getElementById('readme-content').innerHTML = temp.innerHTML;
@@ -84,9 +87,18 @@
       .then(res => res.text())
       .then(csv => {
         const data = Papa.parse(csv, { header: true }).data;
-        let html = "<table><thead><tr><th>Pesquisador</th><th>CVEs</th><th>País</th></tr></thead><tbody>";
+        if (!data || data.length === 0) {
+          document.getElementById('cve-table').innerHTML = "<p>Nenhum CVE encontrado.</p>";
+          return;
+        }
+
+        let html = "<h2>🏅 Hall de CVEs</h2><table><thead><tr><th>Pesquisador</th><th>CVEs</th><th>País</th></tr></thead><tbody>";
+        const seenResearchers = new Set();
+
         data.forEach(row => {
-          if (!row.researcher) return;
+          if (!row.researcher || seenResearchers.has(row.researcher)) return;
+          seenResearchers.add(row.researcher);
+
           const cves = row.cves?.split(/\s+/).filter(Boolean).map(cve => {
             const clean = cve.replace(/[()]/g, '');
             return `<a class='cve-link' href='https://cve.org/CVERecord?id=${clean}' target='_blank'>${clean}</a>`;
@@ -94,6 +106,7 @@
           const flag = getFlagEmoji(row.country_code);
           html += `<tr><td><strong>${row.researcher}</strong></td><td>${cves}</td><td class='country-flag'>${flag}</td></tr>`;
         });
+
         html += "</tbody></table>";
         document.getElementById('cve-table').innerHTML = html;
       });
