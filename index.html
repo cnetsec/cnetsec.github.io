@@ -7,11 +7,11 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
     body {
-      font-family: 'Inter', 'Segoe UI', 'Arial', sans-serif;
-      background: #f5f7fa;
+      font-family: 'Segoe UI', 'Inter', 'Arial', sans-serif;
+      background: #f4f6f8;
       margin: 0;
       padding: 20px;
-      color: #222;
+      color: #111;
     }
     h1 {
       text-align: center;
@@ -23,8 +23,8 @@
       margin: 24px auto;
       background: #fff;
       padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
     }
     table {
       width: 100%;
@@ -34,19 +34,18 @@
     }
     th, td {
       padding: 12px 10px;
-      border-bottom: 2px solid #ccc;
+      border-bottom: 1px solid #ccc;
       text-align: left;
     }
     th {
-      background-color: #f0f2f5;
+      background-color: #f2f4f6;
       font-weight: 600;
-      border-bottom: 3px solid #aaa;
     }
     tr:nth-child(even) {
-      background-color: #f9f9fc;
+      background-color: #fafbfc;
     }
     a {
-      color: #0066cc;
+      color: #0077cc;
       text-decoration: none;
     }
     a:hover {
@@ -54,12 +53,23 @@
     }
     .flag {
       font-size: 1.2em;
-      margin-right: 6px;
+      margin-right: 4px;
     }
     @media (max-width: 768px) {
-      body { padding: 10px; }
-      table { font-size: 14px; }
-      th, td { padding: 8px 6px; }
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      tr {
+        margin-bottom: 12px;
+      }
+      th {
+        display: none;
+      }
+      td {
+        padding: 8px 6px;
+        border: none;
+        background: #fdfdfd;
+      }
     }
   </style>
 </head>
@@ -69,12 +79,12 @@
 
 <div class="section">
   <h2>📘 Sobre o Projeto</h2>
-  <div id="readme-content">Carregando README...</div>
+  <div id="readme-content">Carregando README.md...</div>
 </div>
 
 <div class="section">
   <h2>🧩 CVEs Registrados</h2>
-  <div id="cve-list"><p>Carregando CVEs...</p></div>
+  <div id="cve-list">Carregando CVEs...</div>
 </div>
 
 <script>
