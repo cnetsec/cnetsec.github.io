@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>South America CVE Hall</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -14,36 +14,30 @@
     }
     .container {
       max-width: 1100px;
-      margin: 0 auto;
+      margin: auto;
       background-color: #fff;
       padding: 2rem;
       border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
     h1 {
       text-align: center;
-      font-size: 2rem;
       color: #003366;
-      margin-bottom: 1rem;
     }
-    h2 {
-      margin-top: 3rem;
-      font-size: 1.5rem;
-      color: #004080;
-      border-bottom: 2px solid #ddd;
-      padding-bottom: 0.5rem;
+    p {
+      text-align: center;
+      margin-bottom: 1.5rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      margin-top: 2rem;
+      font-size: 0.95rem;
     }
     th, td {
-      border: 1px solid #dee2e6;
+      border: 1px solid #ccc;
       padding: 0.75rem;
-      text-align: left;
       vertical-align: top;
-      font-size: 0.95rem;
     }
     th {
       background-color: #003366;
@@ -51,10 +45,6 @@
     }
     tr:nth-child(even) {
       background-color: #f1f1f1;
-    }
-    .flag {
-      font-size: 1.2rem;
-      margin-right: 0.4rem;
     }
     .researcher {
       font-weight: bold;
@@ -64,17 +54,27 @@
       display: inline-block;
       margin: 0.1rem 0.3rem 0.1rem 0;
     }
+    .flag {
+      font-size: 1.2rem;
+    }
+    #loading {
+      text-align: center;
+      font-style: italic;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🌎 Hall de CVEs descobertos por pesquisadores sul-americanos</h1>
-    <p>Inspirado pelo <a href="https://garoa.net.br/wiki/Hall_of_CVE_discovered_from_Brazilians" target="_blank">Garoa CVE Hall</a>.</p>
-    <p>Este repositório destaca as contribuições de pesquisadores da América do Sul no ecossistema de vulnerabilidades reportadas oficialmente (CVEs) entre 2024 e 2025.</p>
-    <p>🔗 Acesse em: <a href="https://cnetsec.github.io" target="_blank">https://cnetsec.github.io</a></p>
+    <p>
+      Inspirado pelo <a href="https://garoa.net.br/wiki/Hall_of_CVE_discovered_from_Brazilians" target="_blank">Garoa CVE Hall</a><br />
+      Repositório: <a href="https://github.com/cnetsec/south-america-cve-hall" target="_blank">cnetsec/south-america-cve-hall</a>
+    </p>
 
-    <h2>🏅 Hall de CVEs</h2>
-    <table id="cve-table">
+    <div id="loading">Carregando dados dos pesquisadores...</div>
+
+    <table id="hall-table" style="display:none">
       <thead>
         <tr>
           <th>Pesquisador</th>
@@ -82,46 +82,43 @@
           <th>País</th>
         </tr>
       </thead>
-      <tbody id="cve-body"></tbody>
+      <tbody id="hall-body">
+      </tbody>
     </table>
   </div>
 
   <script>
-    async function carregarDados() {
+    async function loadHall() {
+      const url = "https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv";
       try {
-        const url = "https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv";
-        const resposta = await fetch(url);
-        const csv = await resposta.text();
-        const linhas = csv.trim().split("\n").slice(1);
-
-        const tbody = document.getElementById("cve-body");
-        linhas.forEach(linha => {
-          const [pesquisador, cves, pais, emoji] = linha.split(",");
-          const linhaTabela = document.createElement("tr");
-
-          const celulaPesquisador = document.createElement("td");
-          celulaPesquisador.innerHTML = `<span class="researcher">${pesquisador}</span>`;
-          linhaTabela.appendChild(celulaPesquisador);
-
-          const celulaCVEs = document.createElement("td");
-          const cveList = cves.split(" ").map(cve => {
-            const link = `https://cve.org/CVERecord?id=${cve.trim()}`;
-            return `<a class="cve-link" href="${link}" target="_blank">${cve.trim()}</a>`;
+        const res = await fetch(url);
+        const text = await res.text();
+        const rows = text.trim().split("\n").slice(1); // remove cabeçalho
+        const tbody = document.getElementById("hall-body");
+        rows.forEach(line => {
+          const [pesquisador, cvesRaw, pais] = line.split(",");
+          const cves = cvesRaw.split(" ").map(cve => {
+            cve = cve.trim();
+            return cve.startsWith("CVE-") ?
+              `<a class="cve-link" href="https://cve.org/CVERecord?id=${cve}" target="_blank">${cve}</a>` :
+              `<span class="cve-link">${cve}</span>`;
           }).join(" ");
-          celulaCVEs.innerHTML = cveList;
-          linhaTabela.appendChild(celulaCVEs);
-
-          const celulaPais = document.createElement("td");
-          celulaPais.innerHTML = `${emoji} ${pais}`;
-          linhaTabela.appendChild(celulaPais);
-
-          tbody.appendChild(linhaTabela);
+          const row = `<tr>
+            <td class="researcher">${pesquisador}</td>
+            <td>${cves}</td>
+            <td class="flag">${pais}</td>
+          </tr>`;
+          tbody.insertAdjacentHTML("beforeend", row);
         });
-      } catch (erro) {
-        console.error("Erro ao carregar dados:", erro);
+        document.getElementById("hall-table").style.display = "table";
+        document.getElementById("loading").remove();
+      } catch (e) {
+        document.getElementById("loading").textContent = "Erro ao carregar dados.";
+        console.error("Erro:", e);
       }
     }
-    carregarDados();
+
+    loadHall();
   </script>
 </body>
 </html>
