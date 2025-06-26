@@ -55,22 +55,6 @@
       font-size: 1.2em;
       margin-right: 4px;
     }
-    @media (max-width: 768px) {
-      table, thead, tbody, th, td, tr {
-        display: block;
-      }
-      tr {
-        margin-bottom: 12px;
-      }
-      th {
-        display: none;
-      }
-      td {
-        padding: 8px 6px;
-        border: none;
-        background: #fdfdfd;
-      }
-    }
   </style>
 </head>
 <body>
@@ -97,12 +81,25 @@
     ) || '';
   }
 
+  // Carregar e limpar o README.md
   fetch(readmeURL)
     .then(res => res.text())
     .then(md => {
-      document.getElementById('readme-content').innerHTML = marked.parse(md);
+      const rendered = marked.parse(md);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = rendered;
+
+      // Remove parágrafo que contenha "Nenhum CVE encontrado"
+      tempDiv.querySelectorAll('p').forEach(p => {
+        if (p.textContent.includes('Nenhum CVE encontrado')) {
+          p.remove();
+        }
+      });
+
+      document.getElementById('readme-content').innerHTML = tempDiv.innerHTML;
     });
 
+  // Carregar CVEs
   fetch(csvURL)
     .then(res => res.text())
     .then(csv => {
