@@ -63,12 +63,12 @@
 
 <div class="section">
   <h2>📘 Sobre o Projeto</h2>
-  <div id="readme-content"><p style="color:#888">⌛ Carregando README.md...</p></div>
+  <div id="readme-content">⌛ Carregando README.md...</div>
 </div>
 
 <div class="section">
   <h2>🧩 CVEs Registrados</h2>
-  <div id="cve-list"><p style="color:#888">⌛ Carregando CVEs...</p></div>
+  <div id="cve-list">⌛ Carregando CVEs...</div>
 </div>
 
 <script>
@@ -81,25 +81,29 @@
     ) || '';
   }
 
-  // Carregar e limpar o README.md
+  // Carrega e filtra o README
   fetch(readmeURL)
     .then(res => res.text())
     .then(md => {
-      const rendered = marked.parse(md);
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = rendered;
+      const html = marked.parse(md);
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
 
-      // Remove parágrafo que contenha "Nenhum CVE encontrado"
-      tempDiv.querySelectorAll('p').forEach(p => {
-        if (p.textContent.includes('Nenhum CVE encontrado')) {
-          p.remove();
-        }
+      // Remove título e alerta duplicados
+      const headers = temp.querySelectorAll('h2, h3');
+      headers.forEach(h => {
+        if (h.textContent.toLowerCase().includes('cves registrados')) h.remove();
       });
 
-      document.getElementById('readme-content').innerHTML = tempDiv.innerHTML;
+      const paras = temp.querySelectorAll('p');
+      paras.forEach(p => {
+        if (p.textContent.includes('Nenhum CVE encontrado')) p.remove();
+      });
+
+      document.getElementById('readme-content').innerHTML = temp.innerHTML;
     });
 
-  // Carregar CVEs
+  // Carrega e mostra a tabela de CVEs
   fetch(csvURL)
     .then(res => res.text())
     .then(csv => {
@@ -110,7 +114,21 @@
         return;
       }
 
-      let html = `
+      let rows = '';
+      for (const row of data) {
+        if (!row.cve_id || !row.country) continue;
+        const flag = row.country_code ? `<span class="flag">${countryCodeToEmoji(row.country_code)}</span>` : '';
+        rows += `
+          <tr>
+            <td>${row.cve_id}</td>
+            <td>${row.researcher || '-'}</td>
+            <td>${flag} ${row.country}</td>
+            <td><a href="${row.link}" target="_blank">🔗</a></td>
+          </tr>
+        `;
+      }
+
+      container.innerHTML = `
         <table>
           <thead>
             <tr>
@@ -120,24 +138,9 @@
               <th>Link</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody>${rows}</tbody>
+        </table>
       `;
-
-      data.forEach(row => {
-        if (!row.cve_id || !row.country) return;
-        const flag = row.country_code ? `<span class="flag">${countryCodeToEmoji(row.country_code)}</span>` : '';
-        html += `
-          <tr>
-            <td>${row.cve_id}</td>
-            <td>${row.researcher || '-'}</td>
-            <td>${flag} ${row.country}</td>
-            <td><a href="${row.link}" target="_blank">🔗</a></td>
-          </tr>
-        `;
-      });
-
-      html += '</tbody></table>';
-      container.innerHTML = html;
     });
 </script>
 
