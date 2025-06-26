@@ -1,174 +1,101 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CNetSec — Cybersecurity Advisor</title>
-  <link rel="icon" href="https://www.svgrepo.com/show/509001/shield.svg" type="image/svg+xml">
+  <meta charset="UTF-8" />
+  <title>South America CVE Hall</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
-    :root {
-      --primary: #002c54;
-      --accent: #00aaff;
-      --bg: #fdfdfd;
-      --text: #1a1a1a;
-      --container: 960px;
-    }* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--bg);
-  color: var(--text);
-  padding: 2rem;
-  max-width: var(--container);
-  margin: auto;
-  line-height: 1.6;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 3rem;
-  background-color: #eaf4fb;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-h1 {
-  color: var(--primary);
-  font-size: 2.8rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-p.subtitle {
-  color: #333;
-  font-size: 1.1rem;
-  margin-top: 0.5rem;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.flags img {
-  width: 36px;
-  height: 24px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-}
-
-h3 {
-  color: var(--primary);
-  margin-bottom: 0.5rem;
-}
-
-section {
-  margin-bottom: 2.5rem;
-}
-
-ul {
-  padding-left: 1.5rem;
-}
-
-li {
-  margin-bottom: 0.6rem;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-footer {
-  text-align: center;
-  margin-top: 3rem;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-@media (max-width: 600px) {
-  body {
-    padding: 1rem;
-  }
-
-  h1 {
-    font-size: 2rem;
-  }
-
-  p.subtitle {
-    font-size: 1rem;
-  }
-}
-
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+    }
+    .section {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .flag {
+      font-size: 1.5em;
+      margin-right: 4px;
+    }
+    .cve-id {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    a {
+      color: #0077cc;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>CNetSec — Cybersecurity Advisor</h1>
-    <p class="subtitle">Asesoría en AppSec, Pentesting, DevSecOps, Threat Modeling, Cloud Threat Intelligence e Investigación de Vulnerabilidades para América Latina</p>
-    <div class="flags">
-      <img src="https://flagcdn.com/ar.svg" alt="Argentina">
-      <img src="https://flagcdn.com/br.svg" alt="Brasil">
-      <img src="https://flagcdn.com/cl.svg" alt="Chile">
-      <img src="https://flagcdn.com/co.svg" alt="Colombia">
-      <img src="https://flagcdn.com/ec.svg" alt="Ecuador">
-      <img src="https://flagcdn.com/mx.svg" alt="México">
-      <img src="https://flagcdn.com/pe.svg" alt="Perú">
-      <img src="https://flagcdn.com/py.svg" alt="Paraguay">
-      <img src="https://flagcdn.com/uy.svg" alt="Uruguay">
-      <img src="https://flagcdn.com/ve.svg" alt="Venezuela">
-      <img src="https://flagcdn.com/bo.svg" alt="Bolivia">
-      <img src="https://flagcdn.com/gt.svg" alt="Guatemala">
-      <img src="https://flagcdn.com/sv.svg" alt="El Salvador">
-      <img src="https://flagcdn.com/cr.svg" alt="Costa Rica">
-      <img src="https://flagcdn.com/pa.svg" alt="Panamá">
-      <img src="https://flagcdn.com/do.svg" alt="República Dominicana">
-    </div>
-  </header>  <section>
-    <h3>Sobre Nosotros</h3>
-    <p>En <strong>CNetSec</strong>, actuamos como <strong>Security Advisors</strong> con un enfoque estratégico dirigido a empresas, programas de capacitación técnica y apoyo activo a la comunidad. Nuestro compromiso se centra en ayudar a organizaciones de América Latina a construir programas de seguridad modernos, efectivos y alineados a su contexto regional y regulatorio.</p>
-  </section>  <section>
-    <h3>¿Cómo Trabajamos?</h3>
-    <ul>
-      <li><strong>Asesoría para Empresas:</strong> Orientación en AppSec, DevSecOps, Threat Modeling y seguridad en arquitectura de software.</li>
-      <li><strong>Capacitación y Mentoría:</strong> Desarrollo de competencias técnicas a través de contenidos formativos, sesiones de mentoría y talleres especializados.</li>
-      <li><strong>Apoyo a la Comunidad:</strong> Contribuciones en proyectos abiertos como Hacktiba y conscientizaCVE, impulsando la cultura de seguridad en la región.</li>
-    </ul>
-  </section>  <section>
-    <h3>Áreas de Especialización</h3>
-    <ul>
-      <li><strong>Seguridad de Aplicaciones (AppSec):</strong> Evaluación de madurez, definición de requisitos y mejora continua del ciclo de desarrollo seguro.</li>
-      <li><strong>Pentesting e Investigación de Vulnerabilidades:</strong> Exploración de fallas reales, publicación de CVEs y análisis de exposición.</li>
-      <li><strong>DevSecOps:</strong> Integración de seguridad en pipelines CI/CD, automatización de controles y revisión continua.</li>
-      <li><strong>Threat Modeling:</strong> Identificación proactiva de amenazas con enfoque contextual, colaborativo y adaptado a cada entorno.</li>
-      <li><strong>Cloud Threat Intelligence:</strong> Vigilancia de amenazas en nubes públicas y privadas, incluyendo monitoreo de activos y exposiciones.</li>
-    </ul>
-  </section>  <section>
-    <h3>Iniciativas</h3>
-    <ul>
-      <li><strong>South America CVE Hall:</strong> Recolección y difusión de vulnerabilidades reportadas por investigadores latinoamericanos.</li>
-      <li><strong>Hacktiba Pulse:</strong> Publicaciones colaborativas con buenas prácticas, hallazgos reales y reflexiones aplicadas.</li>
-      <li><strong>conscientizaCVE:</strong> Proyecto educativo con lenguaje claro y práctico para fomentar la comprensión de vulnerabilidades y riesgos.</li>
-    </ul>
-  </section>  <section>
-    <h3>Contacto</h3>
-    <p>📎 <a href="https://www.linkedin.com/company/cnetsec/" target="_blank">LinkedIn — CNetSec</a></p>
-  </section>  <footer>
-    © 2025 CNetSec. Todos los derechos reservados.
-  </footer>
+
+<h1>🌎 South America CVE Hall</h1>
+
+<div class="section" id="readme">
+  <h2>📘 Sobre o Projeto</h2>
+  <div id="readme-content">Carregando conteúdo do README.md...</div>
+</div>
+
+<div class="section">
+  <h2>🧩 CVEs Registrados</h2>
+  <div id="cve-list">Carregando CVEs...</div>
+</div>
+
+<script>
+  // Converter código de país para emoji de bandeira
+  function countryCodeToEmoji(code) {
+    if (!code) return '';
+    return code.toUpperCase().replace(/./g, c =>
+      String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))
+    );
+  }
+
+  // Carregar README.md e renderizar com marked
+  fetch('https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md')
+    .then(res => res.text())
+    .then(md => {
+      document.getElementById('readme-content').innerHTML = marked.parse(md);
+    });
+
+  // Carregar hall.csv e exibir CVEs
+  fetch('https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv')
+    .then(res => res.text())
+    .then(csv => {
+      const parsed = Papa.parse(csv, { header: true }).data;
+      const container = document.getElementById('cve-list');
+      container.innerHTML = '';
+      parsed.forEach(row => {
+        if (!row.cve_id || !row.country) return;
+
+        const flag = row.country_code ? countryCodeToEmoji(row.country_code.trim()) : '';
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <div class="cve-id">${row.cve_id}</div>
+          <div>👤 ${row.researcher || 'Desconhecido'}</div>
+          <div>🌎 ${flag} ${row.country}</div>
+          <div>🔗 <a href="${row.link}" target="_blank">Ver CVE</a></div>
+        `;
+        container.appendChild(div);
+      });
+    });
+</script>
+
 </body>
 </html>
