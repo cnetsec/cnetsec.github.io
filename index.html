@@ -1,98 +1,127 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
   <title>South America CVE Hall</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f8f9fa;
+      color: #212529;
       margin: 0;
-      padding: 1rem;
-      background-color: #f5f5f5;
-      color: #222;
-    }
-    h1, h2 {
-      color: #003366;
+      padding: 2rem;
     }
     .container {
-      max-width: 960px;
-      margin: auto;
-      background: white;
+      max-width: 1100px;
+      margin: 0 auto;
+      background-color: #fff;
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      color: #003366;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      margin-top: 3rem;
+      font-size: 1.5rem;
+      color: #004080;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 0.5rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 2rem;
-      font-size: 0.95rem;
+      margin-top: 1rem;
     }
     th, td {
-      border: 1px solid #ddd;
+      border: 1px solid #dee2e6;
       padding: 0.75rem;
       text-align: left;
+      vertical-align: top;
+      font-size: 0.95rem;
     }
     th {
       background-color: #003366;
       color: white;
     }
     tr:nth-child(even) {
-      background-color: #f2f2f2;
+      background-color: #f1f1f1;
     }
-    code {
-      background: #eee;
-      padding: 2px 4px;
-      border-radius: 4px;
+    .flag {
+      font-size: 1.2rem;
+      margin-right: 0.4rem;
     }
-    a {
-      color: #003366;
-      text-decoration: none;
+    .researcher {
+      font-weight: bold;
+      color: #002244;
     }
-    a:hover {
-      text-decoration: underline;
-    }
-    img.flag {
-      width: 24px;
-      vertical-align: middle;
+    .cve-link {
+      display: inline-block;
+      margin: 0.1rem 0.3rem 0.1rem 0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🌎 South America CVE Hall</h1>
-    <p><strong>Inspirado no <a href="https://garoa.net.br/wiki/Hall_of_CVE_discovered_from_Brazilians" target="_blank">Garoa CVE Hall</a>.</strong></p>
-    <p>Este repositório destaca contribuições de pesquisadores da América do Sul no ecossistema de vulnerabilidades reportadas oficialmente (CVEs).</p>
-    <div id="readme">Carregando conteúdo...</div>
+    <h1>🌎 Hall de CVEs descobertos por pesquisadores sul-americanos</h1>
+    <p>Inspirado pelo <a href="https://garoa.net.br/wiki/Hall_of_CVE_discovered_from_Brazilians" target="_blank">Garoa CVE Hall</a>.</p>
+    <p>Este repositório destaca as contribuições de pesquisadores da América do Sul no ecossistema de vulnerabilidades reportadas oficialmente (CVEs) entre 2024 e 2025.</p>
+    <p>🔗 Acesse em: <a href="https://cnetsec.github.io" target="_blank">https://cnetsec.github.io</a></p>
+
+    <h2>🏅 Hall de CVEs</h2>
+    <table id="cve-table">
+      <thead>
+        <tr>
+          <th>Pesquisador</th>
+          <th>CVE(s)</th>
+          <th>País</th>
+        </tr>
+      </thead>
+      <tbody id="cve-body"></tbody>
+    </table>
   </div>
 
   <script>
-    const readmeURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md';
+    async function carregarDados() {
+      try {
+        const url = "https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv";
+        const resposta = await fetch(url);
+        const csv = await resposta.text();
+        const linhas = csv.trim().split("\n").slice(1);
 
-    fetch(readmeURL)
-      .then(res => res.text())
-      .then(md => {
-        const html = marked.parse(md);
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
+        const tbody = document.getElementById("cve-body");
+        linhas.forEach(linha => {
+          const [pesquisador, cves, pais, emoji] = linha.split(",");
+          const linhaTabela = document.createElement("tr");
 
-        // Remove mensagens desnecessárias
-        temp.querySelectorAll('h1, h2, p').forEach(el => {
-          const text = el.textContent.toLowerCase();
-          if (
-            text.includes('nenhum cve') ||
-            text.includes('carregando dados') ||
-            text.includes('hall de cves') ||
-            text.includes('cves registrados')
-          ) {
-            el.remove();
-          }
+          const celulaPesquisador = document.createElement("td");
+          celulaPesquisador.innerHTML = `<span class="researcher">${pesquisador}</span>`;
+          linhaTabela.appendChild(celulaPesquisador);
+
+          const celulaCVEs = document.createElement("td");
+          const cveList = cves.split(" ").map(cve => {
+            const link = `https://cve.org/CVERecord?id=${cve.trim()}`;
+            return `<a class="cve-link" href="${link}" target="_blank">${cve.trim()}</a>`;
+          }).join(" ");
+          celulaCVEs.innerHTML = cveList;
+          linhaTabela.appendChild(celulaCVEs);
+
+          const celulaPais = document.createElement("td");
+          celulaPais.innerHTML = `${emoji} ${pais}`;
+          linhaTabela.appendChild(celulaPais);
+
+          tbody.appendChild(linhaTabela);
         });
-
-        document.getElementById('readme').innerHTML = temp.innerHTML;
-      });
+      } catch (erro) {
+        console.error("Erro ao carregar dados:", erro);
+      }
+    }
+    carregarDados();
   </script>
 </body>
 </html>
