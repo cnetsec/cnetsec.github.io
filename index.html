@@ -7,38 +7,24 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <style>
     body {
-      font-family: system-ui, sans-serif;
+      font-family: 'Segoe UI', system-ui, sans-serif;
       background: #f9fafb;
       margin: 0;
       padding: 20px;
+      color: #222;
     }
     h1 {
       text-align: center;
-      font-size: 2.2rem;
+      font-size: 2rem;
       margin-bottom: 10px;
     }
     .section {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 20px auto;
       background: #fff;
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 1px 5px rgba(0,0,0,0.05);
-    }
-    .card {
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 16px;
-      margin: 12px 0;
-      background: #fcfcfc;
-    }
-    .flag {
-      font-size: 1.3em;
-      margin-right: 6px;
-    }
-    .cve-id {
-      font-weight: bold;
-      font-size: 1.1em;
     }
     a {
       color: #0066cc;
@@ -46,6 +32,37 @@
     }
     a:hover {
       text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 15px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: 600;
+    }
+    .flag {
+      font-size: 1.2em;
+      margin-right: 4px;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      td {
+        border: none;
+        padding: 8px 0;
+      }
+      th {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -67,39 +84,51 @@
   const readmeURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md';
   const csvURL = 'https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/hall.csv';
 
-  // 🇧🇷 Converte BR → 🇧🇷
   function countryCodeToEmoji(code) {
     return code?.toUpperCase().replace(/./g, c =>
       String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
     ) || '';
   }
 
-  // Render README.md
   fetch(readmeURL)
     .then(res => res.text())
     .then(md => {
       document.getElementById('readme-content').innerHTML = marked.parse(md);
     });
 
-  // Render CSV → cards
   fetch(csvURL)
     .then(res => res.text())
     .then(csv => {
       const data = Papa.parse(csv, { header: true }).data;
       const container = document.getElementById('cve-list');
-      container.innerHTML = '';
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>CVE ID</th>
+              <th>Pesquisador</th>
+              <th>País</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
       for (const row of data) {
         if (!row.cve_id || !row.country) continue;
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <div class="cve-id">${row.cve_id}</div>
-          <div>👤 ${row.researcher || 'Desconhecido'}</div>
-          <div>🌎 <span class="flag">${countryCodeToEmoji(row.country_code)}</span> ${row.country}</div>
-          <div>🔗 <a href="${row.link}" target="_blank">Ver CVE</a></div>
+        const flag = row.country_code ? `<span class="flag">${countryCodeToEmoji(row.country_code)}</span>` : '';
+        html += `
+          <tr>
+            <td>${row.cve_id}</td>
+            <td>${row.researcher || '-'}</td>
+            <td>${flag} ${row.country}</td>
+            <td><a href="${row.link}" target="_blank">🔗</a></td>
+          </tr>
         `;
-        container.appendChild(card);
       }
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
     });
 </script>
 
