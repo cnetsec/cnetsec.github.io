@@ -38,10 +38,23 @@
       margin-bottom: 1rem;
     }
     #content {
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow-x: auto;
-      font-size: 0.95rem;
+      display: none;
+      margin-top: 2rem;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    .retry-btn {
+      background: #003366;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
     }
     .ranking-section {
       display: flex;
@@ -75,21 +88,6 @@
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    .loading, .error {
-      text-align: center;
-      padding: 1rem;
-      font-size: 1.1rem;
-      color: #666;
-    }
-    .retry-btn {
-      background: #003366;
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
     a {
       color: #004080;
       text-decoration: none;
@@ -104,16 +102,12 @@
     <div class="pull-request-note">
       💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
-
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-
     <div id="rankings" class="ranking-section"></div>
-
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
-    <div id="content" style="display:none;"></div>
+    <div id="content"></div>
     <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.
-      <br>
+      ❌ Erro ao carregar conteúdo.<br>
       <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
   </div>
@@ -124,19 +118,20 @@
       document.getElementById("loader").style.display = "block";
       document.getElementById("error").style.display = "none";
       document.getElementById("content").style.display = "none";
+      document.getElementById("rankings").innerHTML = "";
 
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!res.ok) throw new Error("Erro ao buscar");
+        if (!res.ok) throw new Error("Erro ao buscar README");
 
         const md = await res.text();
         const html = marked.parse(md);
         document.getElementById("content").innerHTML = html;
-        document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
+        document.getElementById("loader").style.display = "none";
 
         gerarRankings(md);
-      } catch (err) {
+      } catch {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
@@ -144,36 +139,43 @@
 
     function gerarRankings(md) {
       const paises = {};
-      const pesquisadores = {};
-      const regex = /\*\*(.+?)\*\*\s*\n(.*?)\n(.*?)\n/g;
+      const pessoas = {};
 
-      let match;
-      while ((match = regex.exec(md)) !== null) {
-        const nome = match[1].trim();
-        const cves = [...match[2].matchAll(/CVE-\d{4}-\d{4,7}/g)].map(x => x[0]);
-        const linhaPais = match[3];
+      const lines = md.split("\n");
+      lines.forEach((l, i) => {
+        if (l.startsWith("**")) {
+          const nome = l.match(/^\*\*(.+?)\*\*/)[1];
+          const l2 = lines[i+1] || "";
+          const l3 = lines[i+2] || "";
 
-        const paisesLinha = [...linhaPais.matchAll(/[🇦-🇿]{2,}\s*([A-Za-z]+)/g)];
-        paisesLinha.forEach(([_, pais]) => {
-          paises[pais] = (paises[pais] || 0) + cves.length;
-        });
+          const cves = l2.match(/CVE-\d{4}-\d+/g) || [];
+          const paisText = l3.trim();
 
-        pesquisadores[nome] = (pesquisadores[nome] || 0) + cves.length;
-      }
+          cves.forEach(_ => {
+            pessoas[nome] = (pessoas[nome]||0) + 1;
+          });
 
-      const paisesOrdenado = Object.entries(paises).sort((a,b) => b[1] - a[1]);
-      const pesqOrdenado = Object.entries(pesquisadores).sort((a,b) => b[1] - a[1]);
+          const paisMatches = paisText.match(/🇧🇷 Brasil|🇦🇷 Argentina|🇵🇾 Paraguai|🇺🇾 Uruguai|🇨🇱 Chile|🇪🇨 Equador|🇻🇪 Venezuela|🇨🇴 Colômbia|🇵🇪 Peru/g);
+          if (paisMatches) {
+            paisMatches.forEach(m => {
+              const nomePais = m.split(" ")[1];
+              paises[nomePais] = (paises[nomePais]||0) + cves.length;
+            });
+          }
+        }
+      });
 
-      const div = document.getElementById("rankings");
-      div.innerHTML = `
+      const ordena = obj => Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+      const rankedPaises = ordena(paises);
+      const rankedPessoas = ordena(pessoas);
+
+      document.getElementById("rankings").innerHTML = `
         <div class="ranking">
           <h2>🏁 Ranking por País</h2>
           <table>
             <thead><tr><th>País</th><th>CVEs</th></tr></thead>
             <tbody>
-              ${paisesOrdenado.map(([pais, count], idx) => `
-                <tr><td>${["🥇","🥈","🥉"][idx] || ""} ${pais}</td><td>${count}</td></tr>
-              `).join('')}
+              ${rankedPaises.map(([p,c],i) => `<tr><td>${["🥇","🥈","🥉"][i]||""} ${p}</td><td>${c}</td></tr>`).join("")}
             </tbody>
           </table>
         </div>
@@ -182,9 +184,7 @@
           <table>
             <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
             <tbody>
-              ${pesqOrdenado.map(([nome, count], idx) => `
-                <tr><td>${["🥇","🥈","🥉"][idx] || ""} ${nome}</td><td>${count}</td></tr>
-              `).join('')}
+              ${rankedPessoas.map(([n,c],i) => `<tr><td>${["🥇","🥈","🥉"][i]||""} ${n}</td><td>${c}</td></tr>`).join("")}
             </tbody>
           </table>
         </div>
