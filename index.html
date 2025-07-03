@@ -2,13 +2,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hall de CVEs - Pesquisadores Sul-Americanos</title>
+  <title>South America CVE Hall</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
       background-color: #f5f5f5;
       margin: 0;
-      padding: 2rem;
+      padding: 1rem;
       color: #333;
     }
     .container {
@@ -16,100 +16,74 @@
       margin: auto;
       background: white;
       border-radius: 8px;
-      padding: 2rem;
+      padding: 1.5rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
+    h1, h2 {
       color: #003366;
-      margin-bottom: 1rem;
+      text-align: center;
     }
     .security-banner {
       font-size: 0.9rem;
-      background: #fff4d6;
-      border-left: 4px solid #ffc107;
-      padding: 0.6rem 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .rankings {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-    .ranking-box {
-      flex: 1;
-      min-width: 250px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-    th, td {
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      vertical-align: top;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-    th {
-      background-color: #003366;
-      color: white;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
+      background: #f0f0f0;
+      padding: 0.8rem;
+      border-left: 4px solid #003366;
+      margin-bottom: 1rem;
+      text-align: center;
     }
     .loading, .error {
       text-align: center;
       padding: 1rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: #666;
     }
     .retry-btn {
       background: #003366;
       color: white;
       border: none;
-      padding: 0.6rem 1.2rem;
+      padding: 0.5rem 1rem;
       border-radius: 5px;
       cursor: pointer;
-      margin-top: 1rem;
+      margin-top: 0.5rem;
     }
-    a {
-      color: #004080;
-      text-decoration: none;
+    .ranking {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-bottom: 2rem;
     }
+    .ranking table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.6rem;
+      text-align: left;
+    }
+    th {
+      background-color: #003366;
+      color: white;
+    }
+    tr:nth-child(even) { background-color: #f9f9f9; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!<br>
-      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado.<br>
+      💡 Contribua via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div><h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-<div class="rankings">
-  <div class="ranking-box">
-    <h2>🏁 Ranking por País</h2>
-    <table id="ranking-pais">
-      <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <div class="ranking-box">
-    <h2>🧑‍💻 Ranking por Pesquisador</h2>
-    <table id="ranking-pessoa">
-      <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
 
-<div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
+<div id="ranking" class="ranking"></div>
+
+<div id="loader" class="loading">
+  🔄 Carregando conteúdo diretamente do GitHub...
+</div>
 <div id="content" style="display:none;"></div>
 <div id="error" class="error" style="display:none;">
-  ❌ Erro ao carregar conteúdo.
-  <br>
+  ❌ Erro ao carregar conteúdo.<br>
   <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
 </div>
 
@@ -122,80 +96,55 @@
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
         if (!res.ok) throw new Error("Erro ao buscar");
-
-        const md = await res.text();
-        const html = marked.parse(md);
-        document.getElementById("content").innerHTML = html;
-
-        const cleanText = md.replace(/<[^>]*>/g, "");
-
-        const cveRegex = /\bCVE[- ]?\d{4}[- ]?\d{4,7}\b/gi;
-        const countryRegex = /🇧🇷|🇵🇾|🇦🇷|🇺🇾|🇨🇱|🇵🇪|🇨🇴|🇪🇨|🇧🇴|🇻🇪/g;
-        const nameRegex = /\*\*(.*?)\*\*/g;
-
-        const countryMap = {
-          "🇧🇷": "Brasil",
-          "🇵🇾": "Paraguai",
-          "🇦🇷": "Argentina",
-          "🇺🇾": "Uruguai",
-          "🇨🇱": "Chile",
-          "🇵🇪": "Peru",
-          "🇨🇴": "Colômbia",
-          "🇪🇨": "Equador",
-          "🇧🇴": "Bolívia",
-          "🇻🇪": "Venezuela"
-        };
-
-        const cvePerCountry = {};
-        const cvePerPerson = {};
-        const lines = md.split("\n");
-
-        let currentName = null;
-        let currentFlags = [];
-        for (let line of lines) {
-          const nameMatch = line.match(/^\*\*(.*?)\*\*/);
-          if (nameMatch) {
-            currentName = nameMatch[1].trim();
-            currentFlags = [...(line.match(countryRegex) || [])];
-            continue;
-          }
-
-          const cves = [...line.matchAll(cveRegex)];
-          const uniqueCVEs = new Set(cves.map(m => m[0].replace(/[- ]/g, '').toUpperCase()));
-
-          if (currentName && uniqueCVEs.size > 0) {
-            cvePerPerson[currentName] = (cvePerPerson[currentName] || 0) + uniqueCVEs.size;
-            currentFlags.forEach(flag => {
-              const country = countryMap[flag];
-              if (country) {
-                cvePerCountry[country] = (cvePerCountry[country] || 0) + uniqueCVEs.size;
-              }
-            });
-          }
-        }
-
-        const countryTable = document.querySelector("#ranking-pais tbody");
-        Object.entries(cvePerCountry).sort((a, b) => b[1] - a[1]).forEach(([country, count]) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${country}</td><td>${count}</td>`;
-          countryTable.appendChild(tr);
-        });
-
-        const personTable = document.querySelector("#ranking-pessoa tbody");
-        Object.entries(cvePerPerson).sort((a, b) => b[1] - a[1]).forEach(([person, count]) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${person}</td><td>${count}</td>`;
-          personTable.appendChild(tr);
-        });
-
+        const text = await res.text();
+        document.getElementById("content").innerHTML = marked.parse(text);
         document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
-
+        calculateRanking(text);
       } catch (err) {
-        console.error(err);
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
+    }
+
+    function calculateRanking(md) {
+      const cveRegex = /\bCVE[-–‐\s]?(\d{4})[-–‐]?(\d{4,7})\b/gi;
+      const lines = md.split(/\r?\n/);
+      const paisRegex = /\:\:flag-\w+\:\:|\uD83C\uDDE6-\uD83C\uDDFF|\ud83c\uddf5\ud83c\uddf9|\ud83c\uddf7\ud83c\uddfa|\ud83c\udde6\ud83c\uddf7|\ud83c\uddf3\ud83c\uddf1/g;
+
+      const porPessoa = {};
+      const porPais = {};
+      let currentName = null;
+      let currentCountry = null;
+
+      for (let line of lines) {
+        if (line.startsWith("**")) {
+          const matchName = line.match(/\*\*(.+?)\*\*/);
+          currentName = matchName ? matchName[1].trim() : null;
+          const matchCountry = line.match(/\:\:flag-\w+\:\:|\ud83c\uddf5\ud83c\uddf9|\ud83c\uddf7\ud83c\uddfa|\ud83c\udde6\ud83c\uddf7|\ud83c\uddf3\ud83c\uddf1|\ud83c\uddea\ud83c\uddf8|\ud83c\uddf5\ud83c\uddf1|\ud83c\udde6\ud83c\uddf7|\ud83c\uddf9\ud83c\uddf7|\ud83c\uddf7\ud83c\uddf4/);
+          currentCountry = matchCountry ? matchCountry[0] : null;
+        } else {
+          const cves = [...line.matchAll(cveRegex)].map(m => m[0].toUpperCase());
+          if (currentName && cves.length) {
+            porPessoa[currentName] = porPessoa[currentName] || new Set();
+            cves.forEach(cve => porPessoa[currentName].add(cve));
+          }
+          if (currentCountry && cves.length) {
+            porPais[currentCountry] = porPais[currentCountry] || new Set();
+            cves.forEach(cve => porPais[currentCountry].add(cve));
+          }
+        }
+      }
+
+      const paisTable = `<h2>🏁 Ranking por País</h2><table><thead><tr><th>País</th><th>CVEs</th></tr></thead><tbody>` +
+        Object.entries(porPais).sort((a,b)=>b[1].size-a[1].size).map(([p, set]) =>
+          `<tr><td>${p}</td><td>${set.size}</td></tr>`).join('') + `</tbody></table>`;
+
+      const pessoaTable = `<h2>🧑‍💻 Ranking por Pesquisador</h2><table><thead><tr><th>Nome</th><th>CVEs</th></tr></thead><tbody>` +
+        Object.entries(porPessoa).sort((a,b)=>b[1].size-a[1].size).map(([p, set]) =>
+          `<tr><td>${p}</td><td>${set.size}</td></tr>`).join('') + `</tbody></table>`;
+
+      document.getElementById("ranking").innerHTML = paisTable + pessoaTable;
     }
 
     const script = document.createElement("script");
