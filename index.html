@@ -1,8 +1,9 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hall de CVEs - Pesquisadores Sul-Americanos</title>
+  <title>South America CVE Hall</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -19,37 +20,60 @@
       padding: 2rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
+    .security-banner {
+      font-size: 0.9rem;
+      color: #555;
+      background: #eef6ff;
+      border-left: 4px solid #0077cc;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1rem;
+    }
     h1 {
       text-align: center;
       font-size: 1.8rem;
       color: #003366;
       margin-bottom: 1rem;
     }
-    .security-banner {
-      font-size: 0.9rem;
-      background: #f0f0f0;
-      padding: 0.5rem;
-      border-left: 4px solid #003366;
-      margin-bottom: 1rem;
+    #loader, #error {
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    .retry-btn {
+      background: #003366;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1.5rem 0;
+      margin: 1rem 0;
+      font-size: 0.95rem;
     }
     th, td {
-      padding: 0.7rem;
+      padding: 0.6rem;
       border: 1px solid #ccc;
       text-align: left;
     }
     th {
-      background-color: #003366;
+      background: #003366;
       color: white;
     }
-    .loading, .error {
-      text-align: center;
-      font-size: 1.1rem;
-      color: #666;
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    .section-title {
+      margin-top: 2rem;
+      font-size: 1.3rem;
+      color: #003366;
+    }
+    #content {
+      display: none;
     }
   </style>
 </head>
@@ -59,78 +83,99 @@
       🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!<br>
       💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
-    <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1><div id="ranking"></div>
-<div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
-<div id="content" style="display:none;"></div>
 
-  </div>  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>  <script>
-    async function loadAndProcess() {
-      const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-      const markdown = await res.text();
-      const html = marked.parse(markdown);
+    <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
 
-      document.getElementById("content").innerHTML = html;
-      document.getElementById("loader").style.display = "none";
+    <div id="loader">🔄 Carregando conteúdo diretamente do GitHub...</div>
+    <div id="error" style="display:none;">❌ Erro ao carregar conteúdo. <br>
+      <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
+    </div>
 
-      const lines = markdown.split("\n");
-      const cveRegex = /\bCVE[-–—_ ]?\d{4}[-–—_ ]?\d{4,7}/gi;
-      const countryRegex = /(🇧🇷|brasil|brazil)|🇦🇷|argentina|🇵🇾|paraguai|🇺🇾|uruguai/i;
-      let currentPerson = null;
-      let researcherCount = {};
-      let countryCount = {};
+    <div id="ranking"></div>
+    <div id="content"></div>
+  </div>
 
-      for (let line of lines) {
-        const clean = line.trim();
-        if (clean.startsWith("**") && clean.endsWith("**")) {
-          currentPerson = clean.replace(/\*\*/g, "");
-          if (!researcherCount[currentPerson]) researcherCount[currentPerson] = new Set();
-        }
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    async function loadMarkdown() {
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("content").style.display = "none";
+      document.getElementById("ranking").innerHTML = "";
 
-        const cves = (clean.match(cveRegex) || []).map(cve => cve.toUpperCase().replace(/[^A-Z0-9-]/g, "").replace("CVE", "CVE-").replace(/--+/g, "-").replace(/CVE-+/g, "CVE-"));
-        for (const cve of cves) {
-          if (currentPerson) researcherCount[currentPerson].add(cve);
+      try {
+        const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
+        if (!res.ok) throw new Error("Erro ao buscar README");
 
-          const countryMatch = clean.match(countryRegex);
-          if (countryMatch) {
-            const country = normalizeCountry(countryMatch[0]);
-            if (!countryCount[country]) countryCount[country] = new Set();
-            countryCount[country].add(cve);
+        const text = await res.text();
+
+        // Parse CVEs
+        const lines = text.split('\n');
+        const researcherData = {};
+        const countryData = {};
+
+        let currentResearcher = null;
+        let currentCountry = null;
+
+        const cveRegex = /CVE[-\s_]?20\d{2}[-\s_]?(\d{4,})/gi;
+        const flagRegex = /🇧🇷|🇵🇾|🇦🇷|🇺🇾|🇨🇱|🇵🇪|🇪🇨|🇨🇴|🇻🇪|🇧🇴|Brasil|Brazil|Paraguai|Argentina|Uruguai|Chile|Peru|Equador|Colômbia|Venezuela|Bolívia/gi;
+
+        lines.forEach(line => {
+          if (line.startsWith("**")) {
+            const name = line.replace(/\*\*/g, "").trim();
+            currentResearcher = name;
+            if (!researcherData[currentResearcher]) researcherData[currentResearcher] = new Set();
           }
-        }
+
+          if (flagRegex.test(line)) {
+            const match = line.match(flagRegex);
+            if (match) {
+              currentCountry = match[0].replace("🇧🇷", "Brasil").replace("Brazil", "Brasil").trim();
+              if (!countryData[currentCountry]) countryData[currentCountry] = new Set();
+            }
+          }
+
+          let match;
+          while ((match = cveRegex.exec(line)) !== null) {
+            const cve = `CVE-20${match[0].slice(-9).replace(/[^0-9\-]/g, '')}`;
+            if (currentResearcher) researcherData[currentResearcher].add(cve);
+            if (currentCountry) countryData[currentCountry].add(cve);
+          }
+        });
+
+        // Gerar ranking HTML
+        const rankingDiv = document.getElementById("ranking");
+
+        const renderTable = (title, dataObj, icon) => {
+          const entries = Object.entries(dataObj)
+            .map(([k, v]) => [k, v.size])
+            .filter(([_, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1]);
+
+          let html = `<h2 class="section-title">${icon} ${title}</h2><table><tr><th>Nome</th><th>CVEs</th></tr>`;
+          entries.forEach(([name, count]) => {
+            html += `<tr><td>${name}</td><td>${count}</td></tr>`;
+          });
+          html += '</table>';
+          return html;
+        };
+
+        rankingDiv.innerHTML = 
+          renderTable("Ranking por País", countryData, "🏁") +
+          renderTable("Ranking por Pesquisador", researcherData, "🧑‍💻");
+
+        // Mostrar conteúdo original renderizado
+        document.getElementById("content").innerHTML = marked.parse(text);
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("content").style.display = "block";
+      } catch (e) {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("error").style.display = "block";
+        console.error(e);
       }
-
-      const sortedResearchers = Object.entries(researcherCount)
-        .map(([name, cves]) => [name, cves.size])
-        .sort((a, b) => b[1] - a[1]);
-
-      const sortedCountries = Object.entries(countryCount)
-        .map(([country, cves]) => [country, cves.size])
-        .sort((a, b) => b[1] - a[1]);
-
-      let htmlOutput = '<h2>🏁 Ranking por País</h2><table><tr><th>País</th><th>CVEs</th></tr>';
-      for (const [country, count] of sortedCountries) {
-        htmlOutput += `<tr><td>${country}</td><td>${count}</td></tr>`;
-      }
-      htmlOutput += '</table>';
-
-      htmlOutput += '<h2>🧑‍💻 Ranking por Pesquisador</h2><table><tr><th>Nome</th><th>CVEs</th></tr>';
-      for (const [name, count] of sortedResearchers) {
-        htmlOutput += `<tr><td>${name}</td><td>${count}</td></tr>`;
-      }
-      htmlOutput += '</table>';
-
-      document.getElementById("ranking").innerHTML = htmlOutput;
     }
 
-    function normalizeCountry(input) {
-      const txt = input.toLowerCase();
-      if (txt.includes("br")) return "🇧🇷 Brasil";
-      if (txt.includes("ar")) return "🇦🇷 Argentina";
-      if (txt.includes("py") || txt.includes("paraguai")) return "🇵🇾 Paraguai";
-      if (txt.includes("uy") || txt.includes("uruguai")) return "🇺🇾 Uruguai";
-      return "🌎 Outro";
-    }
-
-    loadAndProcess();
-  </script></body>
+    loadMarkdown();
+  </script>
+</body>
 </html>
