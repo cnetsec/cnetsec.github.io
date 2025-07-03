@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>South America CVE Hall</title>
+  <title>Hall de CVEs - Pesquisadores Sul-Americanos</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f5f5f5;
+      background-color: #f9f9f9;
       margin: 0;
       padding: 2rem;
       color: #333;
+    }
+    .security-banner {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
     }
     .container {
       max-width: 1100px;
@@ -20,26 +29,28 @@
       padding: 2rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
-    .security-banner {
-      background: #eef6ff;
-      border-left: 4px solid #007acc;
-      padding: 0.8rem 1rem;
-      margin-bottom: 1.2rem;
+    h2 {
+      margin-top: 2rem;
+      color: #003366;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
       font-size: 0.95rem;
     }
-    .pull-request-note {
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      vertical-align: top;
+      text-align: left;
     }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      color: #003366;
-      margin-bottom: 1rem;
+    th {
+      background-color: #003366;
+      color: white;
     }
-    #content {
-      display: none;
-      margin-top: 2rem;
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
     }
     .loading, .error {
       text-align: center;
@@ -56,138 +67,95 @@
       cursor: pointer;
       margin-top: 1rem;
     }
-    .ranking-section {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-    .ranking {
-      flex: 1;
-      min-width: 300px;
-    }
-    .ranking h2 {
-      font-size: 1.2rem;
-      color: #003366;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-    th, td {
-      padding: 0.6rem;
-      border: 1px solid #ccc;
-      vertical-align: top;
-      text-align: left;
-    }
-    th {
-      background-color: #003366;
-      color: white;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
     a {
       color: #004080;
-      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado! 💡 <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Envie um Pull Request</a>
     </div>
-    <div class="pull-request-note">
-      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
-    </div>
-    <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-    <div id="rankings" class="ranking-section"></div>
+
+    <div id="rankings"></div>
+
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
-    <div id="content"></div>
+    <div id="content" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.<br>
+      ❌ Erro ao carregar conteúdo.
+      <br>
       <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
   <script>
     async function loadMarkdown() {
-      document.getElementById("loader").style.display = "block";
-      document.getElementById("error").style.display = "none";
-      document.getElementById("content").style.display = "none";
-      document.getElementById("rankings").innerHTML = "";
-
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
         if (!res.ok) throw new Error("Erro ao buscar README");
 
         const md = await res.text();
-        const html = marked.parse(md);
+        const html = DOMPurify.sanitize(marked.parse(md));
+        document.getElementById("loader").style.display = "none";
         document.getElementById("content").innerHTML = html;
         document.getElementById("content").style.display = "block";
-        document.getElementById("loader").style.display = "none";
 
-        gerarRankings(md);
-      } catch {
+        processRankings(md);
+      } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    function gerarRankings(md) {
+    function processRankings(md) {
+      const lines = md.split("\n").filter(l => l.includes("|") && l.includes("**"));
+      const pesquisadorData = [];
       const paises = {};
-      const pessoas = {};
 
-      const lines = md.split("\n");
-      lines.forEach((l, i) => {
-        if (l.startsWith("**")) {
-          const nome = l.match(/^\*\*(.+?)\*\*/)[1];
-          const l2 = lines[i+1] || "";
-          const l3 = lines[i+2] || "";
-
-          const cves = l2.match(/CVE-\d{4}-\d+/g) || [];
-          const paisText = l3.trim();
-
-          cves.forEach(_ => {
-            pessoas[nome] = (pessoas[nome]||0) + 1;
-          });
-
-          const paisMatches = paisText.match(/🇧🇷 Brasil|🇦🇷 Argentina|🇵🇾 Paraguai|🇺🇾 Uruguai|🇨🇱 Chile|🇪🇨 Equador|🇻🇪 Venezuela|🇨🇴 Colômbia|🇵🇪 Peru/g);
-          if (paisMatches) {
-            paisMatches.forEach(m => {
-              const nomePais = m.split(" ")[1];
-              paises[nomePais] = (paises[nomePais]||0) + cves.length;
-            });
-          }
-        }
+      lines.forEach(line => {
+        const parts = line.split("|").map(p => p.trim());
+        const name = parts[1].replace(/\*\*/g, '');
+        const cveMatches = (parts[2].match(/CVE-\d{4}-\d+/g) || []);
+        const pais = parts[3]?.replace("🇧🇷", "Brasil")
+                              .replace("🇺🇾", "Uruguai")
+                              .replace("🇦🇷", "Argentina")
+                              .replace("🇵🇾", "Paraguai")
+                              .trim() || "Outro";
+        pesquisadorData.push({ nome: name, count: cveMatches.length });
+        paises[pais] = (paises[pais] || 0) + cveMatches.length;
       });
 
-      const ordena = obj => Object.entries(obj).sort((a,b)=>b[1]-a[1]);
-      const rankedPaises = ordena(paises);
-      const rankedPessoas = ordena(pessoas);
+      pesquisadorData.sort((a, b) => b.count - a.count);
+      const topPesquisadores = pesquisadorData.map((p, i) => `
+        <tr>
+          <td>${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : ""} ${p.nome}</td>
+          <td>${p.count}</td>
+        </tr>
+      `).join("");
+
+      const paisRanking = Object.entries(paises)
+        .sort((a, b) => b[1] - a[1])
+        .map(([pais, count], i) => `
+          <tr>
+            <td>${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : ""} ${pais}</td>
+            <td>${count}</td>
+          </tr>
+        `).join("");
 
       document.getElementById("rankings").innerHTML = `
-        <div class="ranking">
-          <h2>🏁 Ranking por País</h2>
-          <table>
-            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${rankedPaises.map(([p,c],i) => `<tr><td>${["🥇","🥈","🥉"][i]||""} ${p}</td><td>${c}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
-        <div class="ranking">
-          <h2>🧑‍💻 Ranking por Pesquisador</h2>
-          <table>
-            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${rankedPessoas.map(([n,c],i) => `<tr><td>${["🥇","🥈","🥉"][i]||""} ${n}</td><td>${c}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
+        <h2>🏁 Ranking por País</h2>
+        <table>
+          <tr><th>País</th><th>CVEs</th></tr>
+          ${paisRanking}
+        </table>
+        <h2>🧑‍💻 Ranking por Pesquisador</h2>
+        <table>
+          <tr><th>Nome</th><th>CVEs</th></tr>
+          ${topPesquisadores}
+        </table>
       `;
     }
 
