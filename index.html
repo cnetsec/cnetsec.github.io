@@ -22,6 +22,19 @@
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
 
+    .security-banner, .contribute-banner {
+      background-color: #fff3cd;
+      border-left: 6px solid #ffc107;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+
+    .contribute-banner {
+      background-color: #e8f5e9;
+      border-left-color: #4caf50;
+    }
+
     h1 {
       text-align: center;
       font-size: 1.8rem;
@@ -80,21 +93,24 @@
       text-decoration: none;
     }
 
-    .ranking-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .ranking-wrapper > div {
-      flex: 1;
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <div class="container">
+
+    <div class="security-banner">
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!
+    </div>
+
+    <div class="contribute-banner">
+      🤝 Este projeto é colaborativo! <strong><a href="https://github.com/cnetsec/south-america-cve-hall" target="_blank">Envie um Pull Request</a></strong> para adicionar ou atualizar sua contribuição de CVE.
+    </div>
+
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
+
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
     <div id="content" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
@@ -117,90 +133,16 @@
         const md = await res.text();
         const html = marked.parse(md);
         document.getElementById("content").innerHTML = html;
+
         document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
-
-        generateRankings();
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    function generateRankings() {
-      setTimeout(() => {
-        const content = document.getElementById("content");
-        const table = content.querySelector("table");
-        if (!table) return;
-
-        const rows = Array.from(table.querySelectorAll("tbody tr"));
-        const rankingPais = {};
-        const rankingPessoa = {};
-
-        rows.forEach(row => {
-          const cols = row.querySelectorAll("td");
-          if (cols.length >= 3) {
-            const nome = cols[0].textContent.trim();
-            const cvesRaw = cols[1].textContent.trim();
-            const paisRaw = cols[2].innerHTML;
-
-            const numCVEs = (cvesRaw.match(/CVE-\d{4}-\d+/g) || []).length;
-
-            if (nome) {
-              rankingPessoa[nome] = (rankingPessoa[nome] || 0) + numCVEs;
-            }
-
-            const bandeiras = paisRaw.match(/🇦🇷|🇧🇷|🇨🇱|🇨🇴|🇵🇪|🇵🇾|🇺🇾|🇻🇪|🇪🇨|🇧🇴|🇸🇷|🇬🇾|🇫🇷|🇺🇸|🇪🇸/g) || [];
-            bandeiras.forEach(bandeira => {
-              rankingPais[bandeira] = (rankingPais[bandeira] || 0) + numCVEs;
-            });
-          }
-        });
-
-        const sortedPaises = Object.entries(rankingPais).sort((a, b) => b[1] - a[1]);
-        const sortedPessoas = Object.entries(rankingPessoa).sort((a, b) => b[1] - a[1]);
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "ranking-wrapper";
-
-        const paisDiv = document.createElement("div");
-        paisDiv.innerHTML = `
-          <h2>🏁 Ranking por País</h2>
-          <table>
-            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${sortedPaises.map(([pais, count], index) => `
-                <tr>
-                  <td>${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''} ${pais}</td>
-                  <td>${count}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        `;
-
-        const pessoaDiv = document.createElement("div");
-        pessoaDiv.innerHTML = `
-          <h2>🧑‍💻 Ranking por Pesquisador</h2>
-          <table>
-            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${sortedPessoas.map(([nome, count], index) => `
-                <tr>
-                  <td>${index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''} ${nome}</td>
-                  <td>${count}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        `;
-
-        wrapper.appendChild(paisDiv);
-        wrapper.appendChild(pessoaDiv);
-        content.parentNode.insertBefore(wrapper, content);
-      }, 100);
-    }
-
+    // Load script for marked.js (Markdown to HTML)
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
     script.onload = loadMarkdown;
