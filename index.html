@@ -142,12 +142,18 @@
           if (cols.length >= 3) {
             const nome = cols[0].textContent.trim();
             const cvesRaw = cols[1].textContent.trim();
-            const pais = cols[2].textContent.trim();
+            const paisRaw = cols[2].innerHTML;
 
-            const numCVEs = (cvesRaw.match(/CVE-/g) || []).length;
+            const numCVEs = (cvesRaw.match(/CVE-\d{4}-\d+/g) || []).length;
 
-            if (nome) rankingPessoa[nome] = (rankingPessoa[nome] || 0) + numCVEs;
-            if (pais) rankingPais[pais] = (rankingPais[pais] || 0) + numCVEs;
+            if (nome) {
+              rankingPessoa[nome] = (rankingPessoa[nome] || 0) + numCVEs;
+            }
+
+            const bandeiras = paisRaw.match(/🇦🇷|🇧🇷|🇨🇱|🇨🇴|🇵🇪|🇵🇾|🇺🇾|🇻🇪|🇪🇨|🇧🇴|🇸🇷|🇬🇾|🇫🇷|🇺🇸|🇪🇸/g) || [];
+            bandeiras.forEach(bandeira => {
+              rankingPais[bandeira] = (rankingPais[bandeira] || 0) + numCVEs;
+            });
           }
         });
 
