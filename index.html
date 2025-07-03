@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -10,92 +11,89 @@
       margin: 0;
       padding: 2rem;
       color: #333;
-    }.container {
-  max-width: 1100px;
-  margin: auto;
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-}
-
-h1 {
-  text-align: center;
-  font-size: 1.8rem;
-  color: #003366;
-  margin-bottom: 1rem;
-}
-
-.security-banner {
-  background-color: #e9f5ff;
-  border-left: 4px solid #0077cc;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  font-size: 1rem;
-}
-
-.contrib-link {
-  text-align: center;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-}
-
-.contrib-link a {
-  color: #004080;
-  text-decoration: none;
-}
-
-#content {
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-x: auto;
-  font-size: 0.95rem;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-th, td {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  vertical-align: top;
-  text-align: left;
-}
-
-th {
-  background-color: #003366;
-  color: white;
-}
-
-tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 1rem;
-  font-size: 1.1rem;
-  color: #666;
-}
-
-.retry-btn {
-  background: #003366;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: 1rem;
-}
-
-a {
-  color: #004080;
-  text-decoration: none;
-}
-
+    }
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+    }
+    .security-banner {
+      background: #eef6ff;
+      border-left: 4px solid #007acc;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.2rem;
+      font-size: 0.95rem;
+    }
+    .pull-request-note {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      color: #003366;
+      margin-bottom: 1rem;
+    }
+    #content {
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+      font-size: 0.95rem;
+    }
+    .ranking-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .ranking {
+      flex: 1;
+      min-width: 300px;
+    }
+    .ranking h2 {
+      font-size: 1.2rem;
+      color: #003366;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    th, td {
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background-color: #003366;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    .retry-btn {
+      background: #003366;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    a {
+      color: #004080;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -103,17 +101,25 @@ a {
     <div class="security-banner">
       🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!
     </div>
-    <div class="contrib-link">
+    <div class="pull-request-note">
       💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
+
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
+
+    <div id="rankings" class="ranking-section"></div>
+
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
     <div id="content" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.<br>
+      ❌ Erro ao carregar conteúdo.
+      <br>
       <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
-  </div>  <script>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
     async function loadMarkdown() {
       document.getElementById("loader").style.display = "block";
       document.getElementById("error").style.display = "none";
@@ -124,24 +130,68 @@ a {
         if (!res.ok) throw new Error("Erro ao buscar");
 
         const md = await res.text();
-        const html = DOMPurify.sanitize(marked.parse(md));
+        const html = marked.parse(md);
         document.getElementById("content").innerHTML = html;
-
         document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
+
+        gerarRankings(md);
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    const script1 = document.createElement("script");
-    script1.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    document.head.appendChild(script1);
+    function gerarRankings(md) {
+      const paises = {};
+      const pesquisadores = {};
+      const regex = /\*\*(.+?)\*\*\s*\n(.*?)\n(.*?)\n/g;
 
-    const script2 = document.createElement("script");
-    script2.src = "https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js";
-    script2.onload = loadMarkdown;
-    document.head.appendChild(script2);
-  </script></body>
+      let match;
+      while ((match = regex.exec(md)) !== null) {
+        const nome = match[1].trim();
+        const cves = [...match[2].matchAll(/CVE-\d{4}-\d{4,7}/g)].map(x => x[0]);
+        const linhaPais = match[3];
+
+        const paisesLinha = [...linhaPais.matchAll(/[🇦-🇿]{2,}\s*([A-Za-z]+)/g)];
+        paisesLinha.forEach(([_, pais]) => {
+          paises[pais] = (paises[pais] || 0) + cves.length;
+        });
+
+        pesquisadores[nome] = (pesquisadores[nome] || 0) + cves.length;
+      }
+
+      const paisesOrdenado = Object.entries(paises).sort((a,b) => b[1] - a[1]);
+      const pesqOrdenado = Object.entries(pesquisadores).sort((a,b) => b[1] - a[1]);
+
+      const div = document.getElementById("rankings");
+      div.innerHTML = `
+        <div class="ranking">
+          <h2>🏁 Ranking por País</h2>
+          <table>
+            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
+            <tbody>
+              ${paisesOrdenado.map(([pais, count], idx) => `
+                <tr><td>${["🥇","🥈","🥉"][idx] || ""} ${pais}</td><td>${count}</td></tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="ranking">
+          <h2>🧑‍💻 Ranking por Pesquisador</h2>
+          <table>
+            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
+            <tbody>
+              ${pesqOrdenado.map(([nome, count], idx) => `
+                <tr><td>${["🥇","🥈","🥉"][idx] || ""} ${nome}</td><td>${count}</td></tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    loadMarkdown();
+  </script>
+</body>
 </html>
