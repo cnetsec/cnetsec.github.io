@@ -2,182 +2,141 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <title>Ranking de CVEs - América do Sul</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ranking - South America CVE Hall</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f5f5f5;
+      background: #f9f9f9;
       margin: 0;
       padding: 2rem;
       color: #333;
     }
-
     .container {
-      max-width: 900px;
+      max-width: 960px;
       margin: auto;
       background: white;
-      border-radius: 8px;
       padding: 2rem;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
-
-    .banner {
-      font-size: 0.9rem;
-      color: #555;
-      margin-bottom: 1.5rem;
-      background: #f0f0f0;
-      padding: 0.8rem;
-      border-left: 4px solid #003366;
-    }
-
     h1 {
-      font-size: 1.4rem;
+      text-align: center;
       color: #003366;
-      margin-bottom: 1rem;
     }
-
+    .security-banner {
+      font-size: 0.9rem;
+      background: #eef5ff;
+      padding: 0.8rem 1rem;
+      border-left: 5px solid #003366;
+      margin-bottom: 1.5rem;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 2rem;
+      margin-top: 1rem;
     }
-
     th, td {
-      padding: 0.6rem;
       border: 1px solid #ccc;
+      padding: 0.6rem;
       text-align: left;
     }
-
     th {
-      background-color: #003366;
+      background: #003366;
       color: white;
     }
-
     tr:nth-child(even) {
-      background-color: #f9f9f9;
+      background: #f2f2f2;
     }
-
     .loading {
       text-align: center;
       font-size: 1.1rem;
-      color: #666;
+      color: #555;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="banner">
+    <div class="security-banner">
       🔐 Segurança começa na raiz. Que tal pensar ações como <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>.
     </div>
-
-    <div id="loading" class="loading">🔄 Carregando rankings...</div>
-    <div id="rankings" style="display:none;">
-      <h1>🏁 Ranking por País</h1>
-      <table id="countryTable">
-        <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <h1>🧑‍💻 Ranking por Pesquisador</h1>
-      <table id="researcherTable">
-        <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <h1>🏁 Ranking de CVEs - América do Sul</h1>
+    <div id="loading" class="loading">🔄 Carregando dados e processando rankings...</div>
+    <div id="ranking"></div>
   </div>
 
   <script>
-    async function carregarIndexEProcessar() {
+    async function loadAndProcess() {
+      const rawUrl = "https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md";
       try {
-        const res = await fetch("index.html");
-        const html = await res.text();
+        const res = await fetch(rawUrl);
+        const text = await res.text();
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const rawText = doc.getElementById("content")?.textContent || doc.body.innerText || '';
+        const lines = text.split(/\r?\n/);
+        const countryCounts = {};
+        const researcherCounts = {};
 
-        const linhas = rawText.split("\n");
+        let currentResearcher = null;
+        const cveRegex = /\bCVE[-–—]?\d{4}[-–—]?\d{4,}\b/gi;
+        const countryRegex = /(🇧🇷|Brasil|Brazil)/i;
 
-        const mapaPesquisador = {};
-        const mapaPais = {};
-
-        let pesquisadorAtual = "";
-        const cveRegex = /CVE[-–]?\d{4}[-–]?\d{4,5}/gi;
-        const paisRegex = /🇧🇷|Brasil|Brazil|🇦🇷|Argentina|🇨🇱|Chile|🇨🇴|Col[oó]mbia|🇵🇪|Per[uú]|🇺🇾|Uruguai|🇵🇾|Paraguai|🇪🇨|Equador|🇧🇴|Bol[ií]via|🇻🇪|Venezuela/g;
-
-        for (let i = 0; i < linhas.length; i++) {
-          const linha = linhas[i].trim();
-
-          if (linha.startsWith("**")) {
-            pesquisadorAtual = linha.replace(/\*\*/g, "").trim();
-            if (!mapaPesquisador[pesquisadorAtual]) {
-              mapaPesquisador[pesquisadorAtual] = new Set();
-            }
+        for (let line of lines) {
+          const nameMatch = line.match(/^\*\*(.*?)\*\*/);
+          if (nameMatch) {
+            currentResearcher = nameMatch[1].trim();
+            if (!researcherCounts[currentResearcher]) researcherCounts[currentResearcher] = new Set();
+            continue;
           }
 
-          const cves = (linha.match(cveRegex) || []).map(c => c.toUpperCase());
-          cves.forEach(cve => mapaPesquisador[pesquisadorAtual]?.add(cve));
-
-          const paises = linha.match(paisRegex);
-          if (paises) {
-            paises.forEach(p => {
-              const paisNormalizado = normalizarPais(p);
-              if (paisNormalizado) {
-                mapaPais[paisNormalizado] = (mapaPais[paisNormalizado] || 0) + cves.length;
-              }
-            });
+          if (currentResearcher) {
+            const matches = line.match(cveRegex);
+            if (matches) {
+              matches.forEach(rawCve => {
+                const cve = rawCve.replace(/[–—]/g, "-").toUpperCase();
+                researcherCounts[currentResearcher].add(cve);
+                const countryMatch = line.match(countryRegex);
+                const country = countryMatch ? "Brasil" : "Outro";
+                if (!countryCounts[country]) countryCounts[country] = new Set();
+                countryCounts[country].add(cve);
+              });
+            }
           }
         }
 
-        renderizarTabela("countryTable", Object.entries(mapaPais));
-        renderizarTabela("researcherTable", Object.entries(mapaPesquisador).map(([nome, cves]) => [nome, cves.size]));
+        const sortMap = obj => Object.entries(obj)
+          .map(([k, v]) => [k, v.size])
+          .sort((a, b) => b[1] - a[1]);
+
+        const countryTable = `
+          <h2>🌍 Ranking por País</h2>
+          <table>
+            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
+            <tbody>
+              ${sortMap(countryCounts).map(([country, count]) =>
+                `<tr><td>${country}</td><td>${count}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        `;
+
+        const researcherTable = `
+          <h2>👨‍💻 Ranking por Pesquisador</h2>
+          <table>
+            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
+            <tbody>
+              ${sortMap(researcherCounts).map(([name, count]) =>
+                `<tr><td>${name}</td><td>${count}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        `;
 
         document.getElementById("loading").style.display = "none";
-        document.getElementById("rankings").style.display = "block";
-
-      } catch (e) {
-        document.getElementById("loading").innerText = "❌ Erro ao carregar rankings.";
-        console.error(e);
+        document.getElementById("ranking").innerHTML = countryTable + researcherTable;
+      } catch (err) {
+        document.getElementById("loading").innerText = "❌ Erro ao carregar o conteúdo.";
       }
     }
 
-    function normalizarPais(p) {
-      if (!p) return null;
-      const texto = p.toLowerCase();
-      if (texto.includes("brasil") || texto.includes("brazil") || texto.includes("🇧🇷")) return "🇧🇷 Brasil";
-      if (texto.includes("argentina") || texto.includes("🇦🇷")) return "🇦🇷 Argentina";
-      if (texto.includes("chile") || texto.includes("🇨🇱")) return "🇨🇱 Chile";
-      if (texto.includes("colombia") || texto.includes("colômbia") || texto.includes("🇨🇴")) return "🇨🇴 Colômbia";
-      if (texto.includes("peru") || texto.includes("perú") || texto.includes("🇵🇪")) return "🇵🇪 Peru";
-      if (texto.includes("uruguai") || texto.includes("🇺🇾")) return "🇺🇾 Uruguai";
-      if (texto.includes("paraguai") || texto.includes("🇵🇾")) return "🇵🇾 Paraguai";
-      if (texto.includes("equador") || texto.includes("🇪🇨")) return "🇪🇨 Equador";
-      if (texto.includes("bolivia") || texto.includes("bolívia") || texto.includes("🇧🇴")) return "🇧🇴 Bolívia";
-      if (texto.includes("venezuela") || texto.includes("🇻🇪")) return "🇻🇪 Venezuela";
-      return "🌎 Outro";
-    }
-
-    function renderizarTabela(tabelaId, dados) {
-      dados = dados.filter(([_, count]) => count > 0)
-                   .sort((a, b) => b[1] - a[1]);
-
-      const tbody = document.getElementById(tabelaId).querySelector("tbody");
-      tbody.innerHTML = "";
-
-      for (const [chave, valor] of dados) {
-        const linha = document.createElement("tr");
-        const cel1 = document.createElement("td");
-        cel1.textContent = chave;
-        const cel2 = document.createElement("td");
-        cel2.textContent = valor;
-        linha.appendChild(cel1);
-        linha.appendChild(cel2);
-        tbody.appendChild(linha);
-      }
-    }
-
-    carregarIndexEProcessar();
+    loadAndProcess();
   </script>
 </body>
 </html>
