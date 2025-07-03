@@ -1,6 +1,8 @@
 name: Contar CVEs com segurança
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -8,7 +10,7 @@ permissions:
 
 jobs:
   count-cves:
-    name: Extrair e contar CVEs do README.md
+    name: Executar contagem segura de CVEs
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +25,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 📊 Contar CVEs direto do README.md
+      - name: 📊 Contar CVEs
         run: |
           python3 - << 'EOF'
 import re
 from collections import defaultdict, Counter
-import json
 
 def normalizar(texto):
     texto = texto.replace('‑', '-')
@@ -47,30 +48,28 @@ def extrair_pais(texto):
     match = re.search(r'(🇧🇷|🇦🇷|🇨🇱|🇵🇾|🇺🇾|🇵🇪|🇪🇨|🇨🇴|🇻🇪|🇧🇴|🇬🇾|🇸🇷|🇬🇫)', texto)
     return match.group(1) if match else "🌐"
 
-try:
-    with open("README.md", "r", encoding="utf-8") as f:
-        conteudo = normalizar(f.read())
+with open("README.md", "r", encoding="utf-8") as f:
+    conteudo = normalizar(f.read())
 
-    por_pessoa = defaultdict(set)
-    por_pais = defaultdict(set)
-    todos = []
+por_pessoa = defaultdict(set)
+por_pais = defaultdict(set)
+todos = []
 
-    for nome, bloco in extrair_blocos(conteudo):
-        cves = extrair_cves(bloco)
-        pais = extrair_pais(bloco)
-        todos.extend(cves)
-        por_pessoa[nome].update(cves)
-        por_pais[pais].update(cves)
+for nome, bloco in extrair_blocos(conteudo):
+    cves = extrair_cves(bloco)
+    pais = extrair_pais(bloco)
+    todos.extend(cves)
+    por_pessoa[nome].update(cves)
+    por_pais[pais].update(cves)
 
-    print(f"🔢 Total bruto: {len(todos)}")
-    print(f"✅ Total único: {len(set(todos))}")
-    print("\n🏅 Top 5 pesquisadores:")
-    for nome, cves in sorted(por_pessoa.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
-        print(f" - {nome}: {len(cves)} CVEs")
-    print("\n🌎 CVEs por país:")
-    for pais, cves in sorted(por_pais.items(), key=lambda x: len(x[1]), reverse=True):
-        print(f" - {pais}: {len(cves)}")
+print(f"🔢 Total bruto de CVEs: {len(todos)}")
+print(f"✅ Total único de CVEs: {len(set(todos))}")
 
-except Exception as e:
-    print(f"❌ Erro: {e}")
+print("\n🏅 Top 5 pesquisadores:")
+for nome, cves in sorted(por_pessoa.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
+    print(f" - {nome}: {len(cves)} CVEs")
+
+print("\n🌎 CVEs por país:")
+for pais, cves in sorted(por_pais.items(), key=lambda x: len(x[1]), reverse=True):
+    print(f" - {pais}: {len(cves)}")
 EOF
