@@ -3,23 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hall de CVEs - Pesquisadores Sul-Americanos</title>
+  <title>South America CVE Hall</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f9f9f9;
+      background-color: #f5f5f5;
       margin: 0;
       padding: 2rem;
       color: #333;
-    }
-    .security-banner {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeeba;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      border-radius: 4px;
-      font-size: 0.95rem;
     }
     .container {
       max-width: 1100px;
@@ -29,15 +20,33 @@
       padding: 2rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
-    h2 {
-      margin-top: 2rem;
+    .security-banner {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 1rem;
+      border-radius: 5px;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
       color: #003366;
+      margin-bottom: 1rem;
+    }
+    .rankings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .rankings div {
+      flex: 1;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
-      font-size: 0.95rem;
     }
     th, td {
       padding: 0.75rem;
@@ -69,16 +78,47 @@
     }
     a {
       color: #004080;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado! 💡 <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Envie um Pull Request</a>
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>.
+      Cada CVE ensina algo que pode ser evitado!<br>
+      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
 
-    <div id="rankings"></div>
+    <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
+
+    <div class="rankings">
+      <div>
+        <h2>🏁 Ranking por País</h2>
+        <table>
+          <thead><tr><th>País</th><th>CVEs</th></tr></thead>
+          <tbody>
+            <tr><td>🇧🇷 Brasil</td><td>6</td></tr>
+            <tr><td>🇦🇷 Argentina</td><td>2</td></tr>
+            <tr><td>🇺🇾 Uruguai</td><td>1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h2>🧑‍💻 Ranking por Pesquisador</h2>
+        <table>
+          <thead><tr><th>Pesquisador</th><th>CVEs</th></tr></thead>
+          <tbody>
+            <tr><td>Fernando Mengali</td><td>4</td></tr>
+            <tr><td>Fernando Maia</td><td>2</td></tr>
+            <tr><td>João Victor</td><td>2</td></tr>
+            <tr><td>Danilo Costa</td><td>1</td></tr>
+            <tr><td>Raul Pazemécxas (RaulPACXXX)</td><td>0</td></tr>
+            <tr><td>Jardel Matias</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
     <div id="content" style="display:none;"></div>
@@ -90,75 +130,29 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
   <script>
     async function loadMarkdown() {
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("content").style.display = "none";
+
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!res.ok) throw new Error("Erro ao buscar README");
+        if (!res.ok) throw new Error("Erro ao buscar");
 
         const md = await res.text();
-        const html = DOMPurify.sanitize(marked.parse(md));
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("content").innerHTML = html;
-        document.getElementById("content").style.display = "block";
+        const rawHtml = marked.parse(md);
+        const safeHtml = DOMPurify.sanitize(rawHtml);
 
-        processRankings(md);
+        document.getElementById("content").innerHTML = safeHtml;
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("content").style.display = "block";
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
-
-    function processRankings(md) {
-      const lines = md.split("\n").filter(l => l.includes("|") && l.includes("**"));
-      const pesquisadorData = [];
-      const paises = {};
-
-      lines.forEach(line => {
-        const parts = line.split("|").map(p => p.trim());
-        const name = parts[1].replace(/\*\*/g, '');
-        const cveMatches = (parts[2].match(/CVE-\d{4}-\d+/g) || []);
-        const pais = parts[3]?.replace("🇧🇷", "Brasil")
-                              .replace("🇺🇾", "Uruguai")
-                              .replace("🇦🇷", "Argentina")
-                              .replace("🇵🇾", "Paraguai")
-                              .trim() || "Outro";
-        pesquisadorData.push({ nome: name, count: cveMatches.length });
-        paises[pais] = (paises[pais] || 0) + cveMatches.length;
-      });
-
-      pesquisadorData.sort((a, b) => b.count - a.count);
-      const topPesquisadores = pesquisadorData.map((p, i) => `
-        <tr>
-          <td>${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : ""} ${p.nome}</td>
-          <td>${p.count}</td>
-        </tr>
-      `).join("");
-
-      const paisRanking = Object.entries(paises)
-        .sort((a, b) => b[1] - a[1])
-        .map(([pais, count], i) => `
-          <tr>
-            <td>${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : ""} ${pais}</td>
-            <td>${count}</td>
-          </tr>
-        `).join("");
-
-      document.getElementById("rankings").innerHTML = `
-        <h2>🏁 Ranking por País</h2>
-        <table>
-          <tr><th>País</th><th>CVEs</th></tr>
-          ${paisRanking}
-        </table>
-        <h2>🧑‍💻 Ranking por Pesquisador</h2>
-        <table>
-          <tr><th>Nome</th><th>CVEs</th></tr>
-          ${topPesquisadores}
-        </table>
-      `;
-    }
-
     loadMarkdown();
   </script>
 </body>
