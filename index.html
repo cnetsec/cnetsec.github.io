@@ -21,12 +21,11 @@
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
     .security-banner {
-      background-color: #fff3cd;
-      border: 1px solid #ffeeba;
-      padding: 1rem;
-      border-radius: 5px;
-      margin-bottom: 1.5rem;
+      background: #fff8e1;
+      border-left: 6px solid #ffc107;
+      padding: 0.75rem 1rem;
       font-size: 0.95rem;
+      margin-bottom: 1.5rem;
     }
     h1 {
       text-align: center;
@@ -34,24 +33,24 @@
       color: #003366;
       margin-bottom: 1rem;
     }
-    .rankings {
+    .ranking-section {
       display: flex;
       flex-wrap: wrap;
       gap: 2rem;
-      margin-bottom: 2rem;
+      margin-top: 1.5rem;
     }
-    .rankings div {
+    .ranking-box {
       flex: 1;
+      min-width: 300px;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      margin-top: 0.5rem;
     }
     th, td {
-      padding: 0.75rem;
+      padding: 0.6rem;
       border: 1px solid #ccc;
-      vertical-align: top;
       text-align: left;
     }
     th {
@@ -85,74 +84,103 @@
 <body>
   <div class="container">
     <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>.
-      Cada CVE ensina algo que pode ser evitado!<br>
-      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!<br>
+      💡 Contribua via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
 
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
 
-    <div class="rankings">
-      <div>
-        <h2>🏁 Ranking por País</h2>
-        <table>
-          <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-          <tbody>
-            <tr><td>🇧🇷 Brasil</td><td>6</td></tr>
-            <tr><td>🇦🇷 Argentina</td><td>2</td></tr>
-            <tr><td>🇺🇾 Uruguai</td><td>1</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div>
-        <h2>🧑‍💻 Ranking por Pesquisador</h2>
-        <table>
-          <thead><tr><th>Pesquisador</th><th>CVEs</th></tr></thead>
-          <tbody>
-            <tr><td>Fernando Mengali</td><td>4</td></tr>
-            <tr><td>Fernando Maia</td><td>2</td></tr>
-            <tr><td>João Victor</td><td>2</td></tr>
-            <tr><td>Danilo Costa</td><td>1</td></tr>
-            <tr><td>Raul Pazemécxas (RaulPACXXX)</td><td>0</td></tr>
-            <tr><td>Jardel Matias</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <div id="ranking-section" class="ranking-section"></div>
 
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
     <div id="content" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
       ❌ Erro ao carregar conteúdo.
-      <br>
-      <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
+      <br><button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.3/dist/purify.min.js"></script>
   <script>
     async function loadMarkdown() {
-      document.getElementById("loader").style.display = "block";
-      document.getElementById("error").style.display = "none";
-      document.getElementById("content").style.display = "none";
+      const loader = document.getElementById("loader");
+      const contentDiv = document.getElementById("content");
+      const errorDiv = document.getElementById("error");
+      const rankingDiv = document.getElementById("ranking-section");
+
+      loader.style.display = "block";
+      contentDiv.style.display = "none";
+      errorDiv.style.display = "none";
 
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
         if (!res.ok) throw new Error("Erro ao buscar");
+        const markdown = await res.text();
+        const html = DOMPurify.sanitize(marked.parse(markdown));
+        contentDiv.innerHTML = html;
+        loader.style.display = "none";
+        contentDiv.style.display = "block";
 
-        const md = await res.text();
-        const rawHtml = marked.parse(md);
-        const safeHtml = DOMPurify.sanitize(rawHtml);
+        generateRankings(markdown);
 
-        document.getElementById("content").innerHTML = safeHtml;
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("content").style.display = "block";
-      } catch (err) {
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("error").style.display = "block";
+      } catch (e) {
+        loader.style.display = "none";
+        errorDiv.style.display = "block";
       }
     }
+
+    function generateRankings(markdown) {
+      const paisesCount = {};
+      const pessoasCount = {};
+      const cveRegex = /CVE-\d{4}-\d{4,}/gi;
+
+      const linhas = markdown.split("\n");
+
+      linhas.forEach(linha => {
+        const cves = (linha.match(cveRegex) || []);
+        const count = cves.length;
+
+        // País
+        const paisMatch = linha.match(/🇧🇷|Brasil|BRA|br/gi);
+        if (paisMatch) paisesCount["Brasil"] = (paisesCount["Brasil"] || 0) + count;
+
+        if (/🇦🇷|Argentina/gi.test(linha)) paisesCount["Argentina"] = (paisesCount["Argentina"] || 0) + count;
+        if (/🇵🇾|Paraguai/gi.test(linha)) paisesCount["Paraguai"] = (paisesCount["Paraguai"] || 0) + count;
+        if (/🇺🇾|Uruguai/gi.test(linha)) paisesCount["Uruguai"] = (paisesCount["Uruguai"] || 0) + count;
+
+        // Nome pesquisador
+        const nomeMatch = linha.match(/\*\*(.+?)\*\*/);
+        if (nomeMatch) {
+          const nome = nomeMatch[1].trim();
+          pessoasCount[nome] = (pessoasCount[nome] || 0) + count;
+        }
+      });
+
+      const paisRanking = Object.entries(paisesCount).sort((a, b) => b[1] - a[1]);
+      const pessoaRanking = Object.entries(pessoasCount).sort((a, b) => b[1] - a[1]);
+
+      const paisHTML = `
+        <div class="ranking-box">
+          <h2>🏁 Ranking por País</h2>
+          <table>
+            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
+            <tbody>${paisRanking.map(([p, c]) => `<tr><td>${p}</td><td>${c}</td></tr>`).join("")}</tbody>
+          </table>
+        </div>`;
+
+      const pessoaHTML = `
+        <div class="ranking-box">
+          <h2>🧑‍💻 Ranking por Pesquisador</h2>
+          <table>
+            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
+            <tbody>${pessoaRanking.map(([n, c]) => `<tr><td>${n}</td><td>${c}</td></tr>`).join("")}</tbody>
+          </table>
+        </div>`;
+
+      document.getElementById("ranking-section").innerHTML = paisHTML + pessoaHTML;
+    }
+
     loadMarkdown();
   </script>
 </body>
