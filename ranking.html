@@ -2,137 +2,153 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Ranking de CVEs - América do Sul</title>
+  <title>🏁 Ranking - South America CVE Hall</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background: #f9f9f9;
+      background-color: #f5f5f5;
       margin: 0;
       padding: 2rem;
       color: #333;
     }
+
     .container {
-      max-width: 960px;
+      max-width: 1000px;
       margin: auto;
       background: white;
-      padding: 2rem;
       border-radius: 8px;
+      padding: 2rem;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
+
     h1 {
       text-align: center;
+      font-size: 1.6rem;
       color: #003366;
     }
-    .security-banner {
-      font-size: 0.9rem;
-      background: #eef5ff;
-      padding: 0.8rem 1rem;
-      border-left: 5px solid #003366;
-      margin-bottom: 1.5rem;
+
+    .loading {
+      text-align: center;
+      margin-top: 2rem;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
     }
+
     th, td {
-      border: 1px solid #ccc;
       padding: 0.6rem;
+      border: 1px solid #ccc;
       text-align: left;
     }
+
     th {
-      background: #003366;
+      background-color: #003366;
       color: white;
     }
+
     tr:nth-child(even) {
-      background: #f2f2f2;
+      background-color: #f9f9f9;
     }
-    .loading {
+
+    .disclaimer {
+      font-size: 0.9rem;
       text-align: center;
-      font-size: 1.1rem;
-      color: #555;
+      margin-bottom: 1rem;
+      color: #666;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="security-banner">
-      🔐 Segurança começa na raiz. Que tal pensar ações como <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>.
+    <div class="disclaimer">
+      🔐 Segurança começa na raiz. Que tal pensar em ações como <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong> ao contribuir?<br>
+      💡 Contribua via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>
     </div>
-    <h1>🏁 Ranking de CVEs - América do Sul</h1>
-    <div id="loading" class="loading">🔄 Carregando dados e processando rankings...</div>
-    <div id="ranking"></div>
+
+    <h1>🏁 Ranking por País</h1>
+    <div id="country-ranking" class="loading">Carregando ranking por país...</div>
+
+    <h1>🧑‍💻 Ranking por Pesquisador</h1>
+    <div id="researcher-ranking" class="loading">Carregando ranking por pesquisador...</div>
   </div>
 
   <script>
     async function loadAndProcess() {
-      const rawUrl = "https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md";
       try {
-        const res = await fetch(rawUrl);
-        const text = await res.text();
+        const res = await fetch("index.html");
+        const html = await res.text();
 
-        const lines = text.split(/\r?\n/);
-        const countryCounts = {};
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const content = doc.querySelector("#content")?.textContent || "";
+
+        const lines = content.split("\n");
+
         const researcherCounts = {};
+        const countryCounts = {};
 
         let currentResearcher = null;
-        const cveRegex = /\bCVE[-–—]?\d{4}[-–—]?\d{4,}\b/gi;
-        const countryRegex = /(🇧🇷|Brasil|Brazil)/i;
+        let currentCountry = null;
 
-        for (let line of lines) {
-          const nameMatch = line.match(/^\*\*(.*?)\*\*/);
+        const cveRegex = /\bCVE[-–]?\d{4}[-–]?\d{4,7}\b/gi;
+
+        for (const line of lines) {
+          const nameMatch = /^\*\*(.+?)\*\*/.exec(line);
+          const countryMatch = /🇧🇷|🇦🇷|🇨🇱|🇵🇪|🇺🇾|🇵🇾|🇧🇴|🇪🇨|🇨🇴|🇻🇪/g;
+          const cves = [...line.matchAll(cveRegex)];
+
           if (nameMatch) {
             currentResearcher = nameMatch[1].trim();
-            if (!researcherCounts[currentResearcher]) researcherCounts[currentResearcher] = new Set();
-            continue;
           }
 
-          if (currentResearcher) {
-            const matches = line.match(cveRegex);
-            if (matches) {
-              matches.forEach(rawCve => {
-                const cve = rawCve.replace(/[–—]/g, "-").toUpperCase();
-                researcherCounts[currentResearcher].add(cve);
-                const countryMatch = line.match(countryRegex);
-                const country = countryMatch ? "Brasil" : "Outro";
-                if (!countryCounts[country]) countryCounts[country] = new Set();
-                countryCounts[country].add(cve);
-              });
+          if (countryMatch) {
+            const flag = countryMatch[0];
+            currentCountry = flag;
+            countryCounts[flag] = countryCounts[flag] || 0;
+          }
+
+          if (cves.length > 0 && currentResearcher) {
+            researcherCounts[currentResearcher] = (researcherCounts[currentResearcher] || 0) + cves.length;
+            if (currentCountry) {
+              countryCounts[currentCountry] += cves.length;
             }
           }
         }
 
-        const sortMap = obj => Object.entries(obj)
-          .map(([k, v]) => [k, v.size])
+        // Sort rankings
+        const sortedCountries = Object.entries(countryCounts)
           .sort((a, b) => b[1] - a[1]);
 
-        const countryTable = `
-          <h2>🌍 Ranking por País</h2>
+        const sortedResearchers = Object.entries(researcherCounts)
+          .sort((a, b) => b[1] - a[1]);
+
+        const countryHTML = `
           <table>
-            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${sortMap(countryCounts).map(([country, count]) =>
-                `<tr><td>${country}</td><td>${count}</td></tr>`).join("")}
-            </tbody>
+            <tr><th>País</th><th>CVEs</th></tr>
+            ${sortedCountries.map(([country, count]) =>
+              `<tr><td>${country}</td><td>${count}</td></tr>`).join("")}
           </table>
         `;
 
-        const researcherTable = `
-          <h2>👨‍💻 Ranking por Pesquisador</h2>
+        const researcherHTML = `
           <table>
-            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-            <tbody>
-              ${sortMap(researcherCounts).map(([name, count]) =>
-                `<tr><td>${name}</td><td>${count}</td></tr>`).join("")}
-            </tbody>
+            <tr><th>Nome</th><th>CVEs</th></tr>
+            ${sortedResearchers.map(([name, count]) =>
+              `<tr><td>${name}</td><td>${count}</td></tr>`).join("")}
           </table>
         `;
 
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("ranking").innerHTML = countryTable + researcherTable;
+        document.getElementById("country-ranking").innerHTML = countryHTML;
+        document.getElementById("researcher-ranking").innerHTML = researcherHTML;
+
       } catch (err) {
-        document.getElementById("loading").innerText = "❌ Erro ao carregar o conteúdo.";
+        document.getElementById("country-ranking").innerText = "Erro ao carregar ranking.";
+        document.getElementById("researcher-ranking").innerText = "Erro ao carregar ranking.";
+        console.error(err);
       }
     }
 
