@@ -1,178 +1,148 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>South America CVE Hall</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f5f5f5;
+      background: #f4f4f4;
       margin: 0;
       padding: 2rem;
       color: #333;
     }
     .container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
       max-width: 1100px;
       margin: auto;
-      background: white;
-      border-radius: 8px;
-      padding: 2rem;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
+    h1 { text-align: center; color: #003366; }
     .security-banner {
       font-size: 0.9rem;
-      color: #555;
-      margin-bottom: 1.5rem;
-      padding: 0.8rem;
-      background-color: #f9f9f9;
-      border-left: 4px solid #003366;
-    }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
+      padding: 0.5rem;
+      background: #eef6f8;
       color: #003366;
+      border-left: 4px solid #0099cc;
       margin-bottom: 1rem;
+    }
+    .loading, .error {
+      text-align: center;
+      font-size: 1rem;
+      margin-top: 1rem;
+    }
+    .retry-btn {
+      background: #003366;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
     th, td {
-      padding: 0.75rem;
+      padding: 0.6rem;
       border: 1px solid #ccc;
-      vertical-align: top;
       text-align: left;
     }
     th {
-      background-color: #003366;
-      color: white;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    .loading, .error {
-      text-align: center;
-      padding: 1rem;
-      font-size: 1.1rem;
-      color: #666;
-    }
-    .retry-btn {
       background: #003366;
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 1rem;
+      color: #fff;
     }
-    a {
-      color: #004080;
-      text-decoration: none;
-    }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .rank-table { margin-bottom: 2rem; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!
-      <br>
-      💡 Contribua via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!<br>
+      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
 
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-
-    <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
-    <div id="ranking" style="display:none;"></div>
-    <div id="content" style="display:none;"></div>
-    <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.
-      <br>
-      <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
+    <div class="loading" id="loader">🔄 Carregando conteúdo diretamente do GitHub...</div>
+    <div id="tables" style="display:none;"></div>
+    <div class="error" id="error" style="display:none;">
+      ❌ Erro ao carregar dados. <br>
+      <button class="retry-btn" onclick="loadData()">Tentar novamente</button>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    async function loadMarkdown() {
+    async function loadData() {
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("tables").style.display = "none";
+
       try {
-        document.getElementById("loader").style.display = "block";
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!res.ok) throw new Error("Erro ao buscar");
+        if (!res.ok) throw new Error("Erro ao carregar");
 
-        const md = await res.text();
-        const html = marked.parse(md);
-        document.getElementById("content").innerHTML = html;
-        document.getElementById("content").style.display = "block";
+        const text = await res.text();
+        const lines = text.split("\n");
+        const researcherCves = {};
+        const countryCves = {};
+        let current = null;
+        let currentCountry = null;
 
-        // CONTAGEM DINÂMICA
-        const lines = md.split("\n");
-        const cveRegex = /\bCVE[-–—]?\d{4}[-–—]?\d{4,7}\b/gi;
-        const brasilRegex = /(brasil|brazil|🇧🇷)/gi;
-        const outrosPaises = {
-          "🇦🇷": "Argentina",
-          "🇵🇾": "Paraguai",
-          "🇺🇾": "Uruguai",
-          "🇨🇱": "Chile",
-          "🇨🇴": "Colômbia",
-          "🇵🇪": "Peru"
-        };
+        const cveRegex = /(?:CVE|cve)[-_]?\d{4}[-_]?\d{4,5}/gi;
 
-        const countryCount = { "Brasil": 0 };
-        const researcherCount = {};
+        for (const line of lines) {
+          const researcherMatch = line.match(/\*\*(.*?)\*\*.*?(🇧🇷|🇦🇷|🇨🇴|🇺🇾|🇵🇾|🇵🇪)?/);
+          if (researcherMatch) {
+            current = researcherMatch[1].trim();
+            currentCountry = line.includes("🇧🇷") || /Brasil|Brazil/i.test(line) ? "Brasil" : null;
+            if (!(current in researcherCves)) researcherCves[current] = new Set();
+            continue;
+          }
 
-        lines.forEach(line => {
-          const cves = [...line.matchAll(cveRegex)].map(m => m[0].toUpperCase());
-          const qtd = cves.length;
-          if (qtd === 0) return;
-
-          // País
-          if (brasilRegex.test(line)) countryCount["Brasil"] += qtd;
-          for (const [emoji, name] of Object.entries(outrosPaises)) {
-            if (line.includes(emoji)) {
-              countryCount[name] = (countryCount[name] || 0) + qtd;
+          const cves = [...line.matchAll(cveRegex)].map(m => m[0].toUpperCase().replace(/_/g, "-"));
+          for (const cve of cves) {
+            if (current) researcherCves[current].add(cve);
+            if (currentCountry) {
+              if (!(currentCountry in countryCves)) countryCves[currentCountry] = new Set();
+              countryCves[currentCountry].add(cve);
             }
           }
+        }
 
-          // Pesquisador
-          const personMatch = line.match(/\*\*(.*?)\*\*/);
-          if (personMatch) {
-            const nome = personMatch[1].trim();
-            researcherCount[nome] = (researcherCount[nome] || 0) + qtd;
-          }
-        });
+        const researcherRows = Object.entries(researcherCves)
+          .map(([name, cves]) => ({ name, count: cves.size }))
+          .sort((a, b) => b.count - a.count)
+          .map(r => `<tr><td>${r.name}</td><td>${r.count}</td></tr>`).join("");
 
-        const sortedCountries = Object.entries(countryCount).sort((a,b)=>b[1]-a[1]);
-        const sortedPeople = Object.entries(researcherCount).sort((a,b)=>b[1]-a[1]);
+        const countryRows = Object.entries(countryCves)
+          .map(([country, cves]) => ({ country, count: cves.size }))
+          .sort((a, b) => b.count - a.count)
+          .map(c => `<tr><td>${c.country}</td><td>${c.count}</td></tr>`).join("");
 
-        // Cria tabelas
-        const rankHTML = `
+        document.getElementById("tables").innerHTML = `
           <h2>🏁 Ranking por País</h2>
-          <table>
-            <tr><th>País</th><th>CVEs</th></tr>
-            ${sortedCountries.map(([pais, total]) => `<tr><td>${pais}</td><td>${total}</td></tr>`).join("")}
-          </table>
-          <h2 style="margin-top:2rem;">🧑‍💻 Ranking por Pesquisador</h2>
-          <table>
-            <tr><th>Nome</th><th>CVEs</th></tr>
-            ${sortedPeople.map(([nome, total]) => `<tr><td>${nome}</td><td>${total}</td></tr>`).join("")}
-          </table>
+          <table class="rank-table"><thead><tr><th>País</th><th>CVEs</th></tr></thead><tbody>${countryRows}</tbody></table>
+          <h2>🧑‍💻 Ranking por Pesquisador</h2>
+          <table class="rank-table"><thead><tr><th>Nome</th><th>CVEs</th></tr></thead><tbody>${researcherRows}</tbody></table>
         `;
-        document.getElementById("ranking").innerHTML = rankHTML;
-        document.getElementById("ranking").style.display = "block";
-        document.getElementById("loader").style.display = "none";
 
-      } catch (err) {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("tables").style.display = "block";
+      } catch (e) {
+        console.error("Erro:", e);
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    script.onload = loadMarkdown;
-    document.head.appendChild(script);
+    loadData();
   </script>
 </body>
 </html>
