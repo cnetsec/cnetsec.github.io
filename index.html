@@ -3,69 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>South America CVE Hall</title>
+  <title>Hall de CVEs - South America</title>
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f5f5f5;
+      background: #f9f9f9;
       margin: 0;
       padding: 2rem;
-      color: #333;
+      color: #222;
     }
+
     .container {
-      max-width: 1100px;
+      max-width: 960px;
       margin: auto;
-      background: white;
-      border-radius: 8px;
+      background: #fff;
       padding: 2rem;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
-    .security-banner {
-      background: #fff8e1;
-      border-left: 6px solid #ffc107;
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
+
+    .banner {
+      font-size: 0.9rem;
+      color: #555;
+      background: #eef2f5;
+      border-left: 4px solid #336699;
+      padding: 0.8rem 1rem;
       margin-bottom: 1.5rem;
+      border-radius: 4px;
     }
+
     h1 {
-      text-align: center;
-      font-size: 1.8rem;
+      font-size: 1.5rem;
       color: #003366;
       margin-bottom: 1rem;
     }
-    .ranking-section {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      margin-top: 1.5rem;
-    }
-    .ranking-box {
-      flex: 1;
-      min-width: 300px;
-    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 0.5rem;
+      margin: 1rem 0;
+      font-size: 0.92rem;
     }
+
     th, td {
-      padding: 0.6rem;
       border: 1px solid #ccc;
+      padding: 0.5rem 0.75rem;
       text-align: left;
     }
+
     th {
-      background-color: #003366;
+      background: #003366;
       color: white;
     }
+
     tr:nth-child(even) {
-      background-color: #f9f9f9;
+      background: #f4f4f4;
     }
-    .loading, .error {
+
+    #loader, #error {
       text-align: center;
-      padding: 1rem;
-      font-size: 1.1rem;
-      color: #666;
+      font-size: 1rem;
+      margin-top: 1rem;
     }
+
     .retry-btn {
       background: #003366;
       color: white;
@@ -75,113 +75,134 @@
       cursor: pointer;
       margin-top: 1rem;
     }
-    a {
-      color: #004080;
-      text-decoration: none;
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!<br>
-      💡 Contribua via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
+    <div class="banner">
+      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>.  
+      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
 
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-
-    <div id="ranking-section" class="ranking-section"></div>
-
-    <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
+    <div id="rankings"></div>
+    <div id="loader">🔄 Carregando conteúdo diretamente do GitHub...</div>
     <div id="content" style="display:none;"></div>
-    <div id="error" class="error" style="display:none;">
+    <div id="error" style="display:none;">
       ❌ Erro ao carregar conteúdo.
-      <br><button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
+      <br>
+      <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.3/dist/purify.min.js"></script>
   <script>
     async function loadMarkdown() {
-      const loader = document.getElementById("loader");
-      const contentDiv = document.getElementById("content");
-      const errorDiv = document.getElementById("error");
-      const rankingDiv = document.getElementById("ranking-section");
-
-      loader.style.display = "block";
-      contentDiv.style.display = "none";
-      errorDiv.style.display = "none";
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("error").style.display = "none";
+      document.getElementById("content").style.display = "none";
+      document.getElementById("rankings").innerHTML = "";
 
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!res.ok) throw new Error("Erro ao buscar");
-        const markdown = await res.text();
-        const html = DOMPurify.sanitize(marked.parse(markdown));
-        contentDiv.innerHTML = html;
-        loader.style.display = "none";
-        contentDiv.style.display = "block";
+        if (!res.ok) throw new Error("Erro ao buscar README.md");
 
-        generateRankings(markdown);
+        const md = await res.text();
+        const html = marked.parse(md);
+        document.getElementById("content").innerHTML = html;
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("content").style.display = "block";
 
-      } catch (e) {
-        loader.style.display = "none";
-        errorDiv.style.display = "block";
+        // Processa rankings
+        processRankings(md);
+
+      } catch (err) {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("error").style.display = "block";
       }
     }
 
-    function generateRankings(markdown) {
-      const paisesCount = {};
-      const pessoasCount = {};
-      const cveRegex = /CVE-\d{4}-\d{4,}/gi;
+    function processRankings(text) {
+      const countryCount = {};
+      const personCount = {};
 
-      const linhas = markdown.split("\n");
+      const lines = text.split("\n");
 
-      linhas.forEach(linha => {
-        const cves = (linha.match(cveRegex) || []);
-        const count = cves.length;
+      let currentPerson = null;
+      const cveRegex = /CVE[-–—]?\d{4}[-–—]?\d{4,7}/gi;
+      const countryRegex = /brasil|brazil|🇧🇷|argentina|🇦🇷|🇵🇾|🇨🇱|🇺🇾|🇨🇴|🇵🇪|🇪🇨|🇻🇪/gi;
 
-        // País
-        const paisMatch = linha.match(/🇧🇷|Brasil|BRA|br/gi);
-        if (paisMatch) paisesCount["Brasil"] = (paisesCount["Brasil"] || 0) + count;
+      for (let line of lines) {
+        const clean = line.trim();
 
-        if (/🇦🇷|Argentina/gi.test(linha)) paisesCount["Argentina"] = (paisesCount["Argentina"] || 0) + count;
-        if (/🇵🇾|Paraguai/gi.test(linha)) paisesCount["Paraguai"] = (paisesCount["Paraguai"] || 0) + count;
-        if (/🇺🇾|Uruguai/gi.test(linha)) paisesCount["Uruguai"] = (paisesCount["Uruguai"] || 0) + count;
-
-        // Nome pesquisador
-        const nomeMatch = linha.match(/\*\*(.+?)\*\*/);
-        if (nomeMatch) {
-          const nome = nomeMatch[1].trim();
-          pessoasCount[nome] = (pessoasCount[nome] || 0) + count;
+        if (clean.startsWith("**")) {
+          const match = clean.match(/\*\*(.*?)\*\*/);
+          if (match) {
+            currentPerson = match[1].trim();
+            personCount[currentPerson] = 0;
+          }
         }
-      });
 
-      const paisRanking = Object.entries(paisesCount).sort((a, b) => b[1] - a[1]);
-      const pessoaRanking = Object.entries(pessoasCount).sort((a, b) => b[1] - a[1]);
+        const cves = [...clean.matchAll(cveRegex)];
+        const countries = [...clean.matchAll(countryRegex)];
 
-      const paisHTML = `
-        <div class="ranking-box">
-          <h2>🏁 Ranking por País</h2>
-          <table>
-            <thead><tr><th>País</th><th>CVEs</th></tr></thead>
-            <tbody>${paisRanking.map(([p, c]) => `<tr><td>${p}</td><td>${c}</td></tr>`).join("")}</tbody>
-          </table>
-        </div>`;
+        if (cves.length > 0 && currentPerson) {
+          personCount[currentPerson] += cves.length;
+        }
 
-      const pessoaHTML = `
-        <div class="ranking-box">
-          <h2>🧑‍💻 Ranking por Pesquisador</h2>
-          <table>
-            <thead><tr><th>Nome</th><th>CVEs</th></tr></thead>
-            <tbody>${pessoaRanking.map(([n, c]) => `<tr><td>${n}</td><td>${c}</td></tr>`).join("")}</tbody>
-          </table>
-        </div>`;
+        countries.forEach(match => {
+          const key = match[0].toLowerCase().replace(/[^\w]/g, '');
+          if (!countryCount[key]) countryCount[key] = 0;
+          countryCount[key] += cves.length;
+        });
+      }
 
-      document.getElementById("ranking-section").innerHTML = paisHTML + pessoaHTML;
+      // Organiza países
+      const flagMap = {
+        brasil: "🇧🇷", brazil: "🇧🇷",
+        argentina: "🇦🇷",
+        paraguay: "🇵🇾", py: "🇵🇾",
+        chile: "🇨🇱",
+        uruguay: "🇺🇾",
+        colombia: "🇨🇴",
+        peru: "🇵🇪",
+        ecuador: "🇪🇨",
+        venezuela: "🇻🇪"
+      };
+
+      const sortedCountries = Object.entries(countryCount)
+        .sort((a,b) => b[1] - a[1])
+        .map(([country, count]) => {
+          const emoji = flagMap[country] || "";
+          return `<tr><td>${emoji} ${country.charAt(0).toUpperCase() + country.slice(1)}</td><td>${count}</td></tr>`;
+        });
+
+      const sortedPeople = Object.entries(personCount)
+        .sort((a,b) => b[1] - a[1])
+        .map(([name, count]) => {
+          const medal = count >= 1 ? "" : "";
+          return `<tr><td>${name}</td><td>${count}</td></tr>`;
+        });
+
+      const html = `
+        <h2>🏁 Ranking por País</h2>
+        <table><thead><tr><th>País</th><th>CVEs</th></tr></thead><tbody>
+        ${sortedCountries.join('')}
+        </tbody></table>
+
+        <h2>🧑‍💻 Ranking por Pesquisador</h2>
+        <table><thead><tr><th>Nome</th><th>CVEs</th></tr></thead><tbody>
+        ${sortedPeople.join('')}
+        </tbody></table>
+      `;
+
+      document.getElementById("rankings").innerHTML = html;
     }
 
-    loadMarkdown();
+    // Load script for marked.js
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+    script.onload = loadMarkdown;
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
