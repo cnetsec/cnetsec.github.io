@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>South America CVE Hall</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' https://flagcdn.com data:;">
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -12,7 +12,6 @@
       padding: 2rem;
       color: #333;
     }
-
     .container {
       max-width: 1100px;
       margin: auto;
@@ -21,63 +20,42 @@
       padding: 2rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
-
-    .security-banner, .contribute-banner {
-      background-color: #fff3cd;
-      border-left: 6px solid #ffc107;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      font-size: 1rem;
-    }
-
-    .contribute-banner {
-      background-color: #e8f5e9;
-      border-left-color: #4caf50;
-    }
-
     h1 {
       text-align: center;
       font-size: 1.8rem;
       color: #003366;
       margin-bottom: 1rem;
     }
-
     #content {
       white-space: pre-wrap;
       word-break: break-word;
       overflow-x: auto;
       font-size: 0.95rem;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1rem;
     }
-
     th, td {
       padding: 0.75rem;
       border: 1px solid #ccc;
       vertical-align: top;
       text-align: left;
     }
-
     th {
       background-color: #003366;
       color: white;
     }
-
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-
     .loading, .error {
       text-align: center;
       padding: 1rem;
       font-size: 1.1rem;
       color: #666;
     }
-
     .retry-btn {
       background: #003366;
       color: white;
@@ -87,40 +65,33 @@
       cursor: pointer;
       margin-top: 1rem;
     }
-
     a {
       color: #004080;
       text-decoration: none;
     }
-
-    a:hover {
-      text-decoration: underline;
+    .notice {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1rem;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <div class="container">
-
-    <div class="security-banner">
-      🔐 Segurança começa na raiz: contribua pensando em <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>. Cada CVE ensina algo que pode ser evitado!
+    <div class="notice">
+      🔐 Importante: Reflita sobre modelagem de ameaças e requisitos de segurança ao contribuir.<br>
+      💡 Contribua com novos dados via <a href="https://github.com/cnetsec/south-america-cve-hall/pulls" target="_blank">Pull Request</a>.
     </div>
-
-    <div class="contribute-banner">
-      🤝 Este projeto é colaborativo! <strong><a href="https://github.com/cnetsec/south-america-cve-hall" target="_blank">Envie um Pull Request</a></strong> para adicionar ou atualizar sua contribuição de CVE.
-    </div>
-
     <h1>🌎 Hall de CVEs - Pesquisadores Sul-Americanos</h1>
-
     <div id="loader" class="loading">🔄 Carregando conteúdo diretamente do GitHub...</div>
+    <div id="ranking"></div>
     <div id="content" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.
-      <br>
+      ❌ Erro ao carregar conteúdo.<br>
       <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
     </div>
-  </div>
-
-  <script>
+  </div>  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" integrity="sha384-mxKph+2kA8GpUWWZb7s/ChzDfn4VhhyILmg0oL6UuYoXcSkx5f7KjM2AkVy6+4um" crossorigin="anonymous"></script>  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js" integrity="sha384-0biHw/roP8BxYKeSP4uYscB0rRp9YyDHDk6gJc9rF2bKRPv4Nl33ETNfIpDrHdks" crossorigin="anonymous"></script>  <script>
     async function loadMarkdown() {
       document.getElementById("loader").style.display = "block";
       document.getElementById("error").style.display = "none";
@@ -128,25 +99,61 @@
 
       try {
         const res = await fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md");
-        if (!res.ok) throw new Error("Erro ao buscar");
+        if (!res.ok) throw new Error("Erro ao buscar conteúdo");
 
         const md = await res.text();
-        const html = marked.parse(md);
+        const html = DOMPurify.sanitize(marked.parse(md));
         document.getElementById("content").innerHTML = html;
-
         document.getElementById("loader").style.display = "none";
         document.getElementById("content").style.display = "block";
+
+        gerarRanking(html);
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
       }
     }
 
-    // Load script for marked.js (Markdown to HTML)
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    script.onload = loadMarkdown;
-    document.head.appendChild(script);
-  </script>
-</body>
+    function gerarRanking(html) {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      const linhas = temp.querySelectorAll("table tr");
+
+      const rankingPessoas = {};
+      const rankingPaises = {};
+
+      linhas.forEach((tr, i) => {
+        if (i === 0) return; // skip header
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 3) {
+          const nome = tds[0].textContent.trim();
+          const cves = (tds[1].textContent.match(/CVE/g) || []).length;
+          const pais = tds[2].textContent.trim();
+
+          rankingPessoas[nome] = (rankingPessoas[nome] || 0) + cves;
+          rankingPaises[pais] = (rankingPaises[pais] || 0) + cves;
+        }
+      });
+
+      const sortedPaises = Object.entries(rankingPaises).sort((a, b) => b[1] - a[1]);
+      const sortedPessoas = Object.entries(rankingPessoas).sort((a, b) => b[1] - a[1]);
+
+      const paisHTML = sortedPaises.map(([pais, count], i) => {
+        const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+        return `<tr><td>${medalha} ${pais}</td><td>${count}</td></tr>`;
+      }).join('');
+
+      const pessoasHTML = sortedPessoas.map(([nome, count], i) => {
+        const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+        return `<tr><td>${medalha} ${nome}</td><td>${count}</td></tr>`;
+      }).join('');
+
+      document.getElementById("ranking").innerHTML = `
+        <h2>🏁 Ranking por País</h2>
+        <table><thead><tr><th>País</th><th>CVEs</th></tr></thead><tbody>${paisHTML}</tbody></table>
+        <h2 style="margin-top:2rem;">🧑‍💻 Ranking por Pesquisador</h2>
+        <table><thead><tr><th>Nome</th><th>CVEs</th></tr></thead><tbody>${pessoasHTML}</tbody></table>
+      `;
+    }
+  </script></body>
 </html>
