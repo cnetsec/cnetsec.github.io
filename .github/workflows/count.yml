@@ -1,0 +1,76 @@
+name: Contar CVEs com segurança
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  count-cves:
+    name: Extrair e contar CVEs do README.md
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔒 Checkout seguro
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: 🐍 Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📊 Contar CVEs direto do README.md
+        run: |
+          python3 - << 'EOF'
+import re
+from collections import defaultdict, Counter
+import json
+
+def normalizar(texto):
+    texto = texto.replace('‑', '-')
+    texto = re.sub(r'<br\s*/?>', '\n', texto, flags=re.IGNORECASE)
+    texto = re.sub(r'<[^>]+>', '', texto)
+    return texto
+
+def extrair_blocos(texto):
+    blocos = re.split(r'\*\*(.+?)\*\*', texto)
+    return [(blocos[i].strip(), blocos[i+1].strip()) for i in range(1, len(blocos), 2)]
+
+def extrair_cves(texto):
+    return [cve.replace('‑', '-').upper() for cve in re.findall(r'cve[-‑]\d{4}[-‑]\d{4,6}', texto, flags=re.IGNORECASE)]
+
+def extrair_pais(texto):
+    match = re.search(r'(🇧🇷|🇦🇷|🇨🇱|🇵🇾|🇺🇾|🇵🇪|🇪🇨|🇨🇴|🇻🇪|🇧🇴|🇬🇾|🇸🇷|🇬🇫)', texto)
+    return match.group(1) if match else "🌐"
+
+try:
+    with open("README.md", "r", encoding="utf-8") as f:
+        conteudo = normalizar(f.read())
+
+    por_pessoa = defaultdict(set)
+    por_pais = defaultdict(set)
+    todos = []
+
+    for nome, bloco in extrair_blocos(conteudo):
+        cves = extrair_cves(bloco)
+        pais = extrair_pais(bloco)
+        todos.extend(cves)
+        por_pessoa[nome].update(cves)
+        por_pais[pais].update(cves)
+
+    print(f"🔢 Total bruto: {len(todos)}")
+    print(f"✅ Total único: {len(set(todos))}")
+    print("\n🏅 Top 5 pesquisadores:")
+    for nome, cves in sorted(por_pessoa.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
+        print(f" - {nome}: {len(cves)} CVEs")
+    print("\n🌎 CVEs por país:")
+    for pais, cves in sorted(por_pais.items(), key=lambda x: len(x[1]), reverse=True):
+        print(f" - {pais}: {len(cves)}")
+
+except Exception as e:
+    print(f"❌ Erro: {e}")
+EOF
