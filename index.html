@@ -13,7 +13,7 @@
       color: #333;
     }
     .container {
-      max-width: 1300px;
+      max-width: 1100px;
       margin: auto;
       background: white;
       border-radius: 8px;
@@ -26,11 +26,12 @@
       color: #003366;
       margin-bottom: 1rem;
     }
-    #readme {
+    #ranking, #readme {
       white-space: pre-wrap;
       word-break: break-word;
       overflow-x: auto;
       font-size: 0.95rem;
+      margin-bottom: 2rem;
     }
     table {
       width: 100%;
@@ -49,15 +50,6 @@
     }
     tr:nth-child(even) {
       background-color: #f9f9f9;
-    }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-    }
-    .half {
-      flex: 1;
-      min-width: 300px;
     }
     .loading, .error {
       text-align: center;
@@ -94,57 +86,38 @@
     🔐 Segurança começa na raiz. Que tal pensar ações como <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>?
   </div>
   <div class="container">
-    <h1>🏅 South America CVE Hall</h1>
-
-    <div id="loader" class="loading">🔄 Carregando conteúdo do GitHub...</div>
+    <div id="loader" class="loading">🔄 Carregando conteúdo...</div>
+    <div id="ranking" style="display:none;"></div>
+    <div id="readme" style="display:none;"></div>
     <div id="error" class="error" style="display:none;">
       ❌ Erro ao carregar conteúdo.
       <br>
-      <button class="retry-btn" onclick="loadMarkdown()">Tentar novamente</button>
+      <button class="retry-btn" onclick="loadContent()">Tentar novamente</button>
     </div>
-
-    <div id="rankings" class="grid" style="display:none;"></div>
-
-    <div id="readme" style="margin-top:2rem;"></div>
   </div>
 
   <script>
-    async function loadMarkdown() {
+    async function fetchAndRenderMarkdown(url, elementId) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erro ao buscar " + url);
+      const md = await res.text();
+      const html = marked.parse(md);
+      document.getElementById(elementId).innerHTML = html;
+    }
+
+    async function loadContent() {
       document.getElementById("loader").style.display = "block";
       document.getElementById("error").style.display = "none";
-      document.getElementById("rankings").style.display = "none";
+      document.getElementById("ranking").style.display = "none";
+      document.getElementById("readme").style.display = "none";
 
       try {
-        const [readmeRes, rankRes] = await Promise.all([
-          fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md"),
-          fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/ranking.md")
-        ]);
-
-        if (!readmeRes.ok || !rankRes.ok) throw new Error("Erro ao buscar arquivos");
-
-        const [readme, ranking] = await Promise.all([
-          readmeRes.text(),
-          rankRes.text()
-        ]);
-
-        const rankingsDiv = document.getElementById("rankings");
-        const parts = ranking.split("## 🌎 Ranking por País");
-
-        rankingsDiv.innerHTML = `
-          <div class="half">
-            <h2>👨‍💻 Ranking por Pesquisador</h2>
-            ${marked.parse(parts[0])}
-          </div>
-          <div class="half">
-            <h2>🌎 Ranking por País</h2>
-            ${marked.parse("## 🌎 Ranking por País" + parts[1])}
-          </div>
-        `;
-
-        document.getElementById("readme").innerHTML = marked.parse(readme);
+        await fetchAndRenderMarkdown("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/ranking.md", "ranking");
+        await fetchAndRenderMarkdown("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md", "readme");
 
         document.getElementById("loader").style.display = "none";
-        document.getElementById("rankings").style.display = "flex";
+        document.getElementById("ranking").style.display = "block";
+        document.getElementById("readme").style.display = "block";
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
@@ -153,7 +126,7 @@
 
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    script.onload = loadMarkdown;
+    script.onload = loadContent;
     document.head.appendChild(script);
   </script>
 </body>
