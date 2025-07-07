@@ -13,35 +13,48 @@
       color: #333;
     }
     .container {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: auto;
       background: white;
       border-radius: 8px;
       padding: 2rem;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      color: #003366;
-      margin-bottom: 1rem;
-    }
-    #ranking, #readme {
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow-x: auto;
+    .security-banner {
+      background: #eef6f9;
+      color: #003344;
+      padding: 0.8rem 1.2rem;
+      border-left: 4px solid #3399cc;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
       font-size: 0.95rem;
-      margin-bottom: 2rem;
+    }
+    .loading, .error {
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.1rem;
+      color: #666;
+    }
+    .tables {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+    .table-container {
+      flex: 1 1 45%;
+      overflow-x: auto;
+    }
+    .table-container h3 {
+      color: #003366;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      margin-top: 0.5rem;
     }
     th, td {
-      padding: 0.75rem;
+      padding: 0.6rem;
       border: 1px solid #ccc;
-      vertical-align: top;
       text-align: left;
     }
     th {
@@ -51,33 +64,8 @@
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    .loading, .error {
-      text-align: center;
-      padding: 1rem;
-      font-size: 1.1rem;
-      color: #666;
-    }
-    .retry-btn {
-      background: #003366;
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 1rem;
-    }
-    a {
-      color: #004080;
-      text-decoration: none;
-    }
-    .security-banner {
-      background: #eef6f9;
-      color: #003344;
-      padding: 0.8rem 1.2rem;
-      border-left: 4px solid #3399cc;
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      font-size: 0.95rem;
+    #readme {
+      margin-top: 2rem;
     }
   </style>
 </head>
@@ -85,39 +73,52 @@
   <div class="security-banner">
     🔐 Segurança começa na raiz. Que tal pensar ações como <strong>modelagem de ameaças</strong> e <strong>requisitos de segurança</strong>?
   </div>
+
   <div class="container">
     <div id="loader" class="loading">🔄 Carregando conteúdo...</div>
-    <div id="ranking" style="display:none;"></div>
-    <div id="readme" style="display:none;"></div>
-    <div id="error" class="error" style="display:none;">
-      ❌ Erro ao carregar conteúdo.
-      <br>
-      <button class="retry-btn" onclick="loadContent()">Tentar novamente</button>
+    <div id="content" style="display: none;">
+      <div class="tables">
+        <div class="table-container">
+          <h3>🏅 Ranking por Pesquisador</h3>
+          <div id="ranking-pesquisadores"></div>
+        </div>
+        <div class="table-container">
+          <h3>🌎 Ranking por País</h3>
+          <div id="ranking-paises"></div>
+        </div>
+      </div>
+      <div id="readme"></div>
     </div>
+    <div id="error" class="error" style="display: none;">❌ Erro ao carregar conteúdo. Tente novamente.</div>
   </div>
 
   <script>
-    async function fetchAndRenderMarkdown(url, elementId) {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Erro ao buscar " + url);
-      const md = await res.text();
-      const html = marked.parse(md);
-      document.getElementById(elementId).innerHTML = html;
-    }
-
-    async function loadContent() {
-      document.getElementById("loader").style.display = "block";
-      document.getElementById("error").style.display = "none";
-      document.getElementById("ranking").style.display = "none";
-      document.getElementById("readme").style.display = "none";
-
+    async function loadAll() {
       try {
-        await fetchAndRenderMarkdown("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/ranking.md", "ranking");
-        await fetchAndRenderMarkdown("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md", "readme");
+        const [readmeRes, rankingRes] = await Promise.all([
+          fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/README.md"),
+          fetch("https://raw.githubusercontent.com/cnetsec/south-america-cve-hall/main/ranking.md"),
+        ]);
 
+        if (!readmeRes.ok || !rankingRes.ok) throw new Error("Falha no fetch");
+
+        const [readmeText, rankingText] = await Promise.all([readmeRes.text(), rankingRes.text()]);
+
+        const htmlReadme = marked.parse(readmeText);
+        const htmlRanking = marked.parse(rankingText);
+
+        const divTemp = document.createElement("div");
+        divTemp.innerHTML = htmlRanking;
+
+        const tables = divTemp.querySelectorAll("table");
+        if (tables.length >= 2) {
+          document.getElementById("ranking-pesquisadores").innerHTML = tables[0].outerHTML;
+          document.getElementById("ranking-paises").innerHTML = tables[1].outerHTML;
+        }
+
+        document.getElementById("readme").innerHTML = htmlReadme;
         document.getElementById("loader").style.display = "none";
-        document.getElementById("ranking").style.display = "block";
-        document.getElementById("readme").style.display = "block";
+        document.getElementById("content").style.display = "block";
       } catch (err) {
         document.getElementById("loader").style.display = "none";
         document.getElementById("error").style.display = "block";
@@ -126,7 +127,7 @@
 
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-    script.onload = loadContent;
+    script.onload = loadAll;
     document.head.appendChild(script);
   </script>
 </body>
